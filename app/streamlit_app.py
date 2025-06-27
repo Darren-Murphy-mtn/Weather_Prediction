@@ -1,5 +1,12 @@
 """
-Streamlit web interface for Mount Rainier Weather Prediction Tool
+Mount Rainier Weather Prediction Web Application
+
+This is the main web interface for the Mount Rainier Weather Prediction Tool.
+It provides climbers with an easy-to-use dashboard to check weather forecasts
+and safety assessments for climbing Mount Rainier.
+
+Author: Weather Prediction Team
+Purpose: Web interface for weather forecasting and safety assessment
 """
 
 import streamlit as st
@@ -12,9 +19,12 @@ from datetime import datetime, timedelta
 import sys
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Add project root to path for imports
+project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root))
+sys.path.append(str(project_root / "src"))
 
+# Now import our modules
 from config.config import *
 from utils import (
     calculate_wind_chill, format_forecast_date, generate_forecast_hours,
