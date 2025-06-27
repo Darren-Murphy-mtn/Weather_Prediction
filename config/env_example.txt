@@ -1,0 +1,19 @@
+# Mount Rainier Weather Prediction Tool - Environment Variables
+
+# ERA5 Climate Data Store API
+# Register at: https://cds.climate.copernicus.eu/
+CDS_API_URL=https://cds.climate.copernicus.eu/api/v2
+CDS_API_KEY=your_cds_api_key_here
+
+# Optional: Additional weather APIs
+# NWS_API_KEY=your_nws_api_key_here
+# OPENWEATHER_API_KEY=your_openweather_api_key_here
+
+# Model settings
+MODEL_RANDOM_STATE=42
+FORECAST_HOURS=72
+
+# Data paths (optional overrides)
+# RAW_DATA_PATH=data/raw
+# PROCESSED_DATA_PATH=data/processed
+# MODELS_PATH=data/models 
