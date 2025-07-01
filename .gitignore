@@ -168,4 +168,11 @@ Thumbs.db
 
 # Logs
 *.log
-logs/ 
+logs/
+
+# CDS API credentials
+.cdsapirc
+
+# CDS API credentials
+url: https://cds.climate.copernicus.eu/api
+key: <PERSONAL-ACCESS-TOKEN> 

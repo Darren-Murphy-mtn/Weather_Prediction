@@ -121,7 +121,7 @@ class WeatherModelTrainer:
             target_variable: Which weather variable to predict (e.g., 'temperature')
             
         Returns:
-            Tuple of (X_train, X_val, y_train, y_val, scaler)
+            Tuple of (X_train, X_val, y_train, y_val, scaler, feature_cols)
             
         Example:
             prepare_training_data(df, 'temperature') returns scaled training data
@@ -129,8 +129,12 @@ class WeatherModelTrainer:
         """
         print(f"🔧 Preparing training data for {target_variable} prediction...")
         
-        # Create feature matrix (X) and target vector (y)
-        X = df[self.feature_columns].copy()
+        # Select all columns except the target and metadata columns, and use only numeric columns
+        exclude_cols = [target_variable, 'data_source']
+        numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+        feature_cols = [col for col in numeric_cols if col not in exclude_cols]
+        print(f"  Final numeric feature columns: {feature_cols}")
+        X = df[feature_cols].copy()
         y = df[target_variable].copy()
         
         # Remove rows where target variable is missing
@@ -164,7 +168,7 @@ class WeatherModelTrainer:
         
         print(f"✅ Data prepared and scaled for {target_variable} training")
         
-        return X_train_scaled, X_val_scaled, y_train, y_val, scaler
+        return X_train_scaled, X_val_scaled, y_train, y_val, scaler, feature_cols
     
     def train_single_model(self, X_train: pd.DataFrame, y_train: pd.Series, 
                           target_variable: str) -> xgb.XGBRegressor:
@@ -389,7 +393,7 @@ class WeatherModelTrainer:
             
             try:
                 # Prepare training data for this target
-                X_train, X_val, y_train, y_val, scaler = self.prepare_training_data(
+                X_train, X_val, y_train, y_val, scaler, feature_cols = self.prepare_training_data(
                     df, target_variable
                 )
                 
@@ -401,7 +405,7 @@ class WeatherModelTrainer:
                 
                 # Get feature importance
                 importance = self.get_feature_importance(
-                    model, self.feature_columns, target_variable
+                    model, feature_cols, target_variable
                 )
                 
                 # Store everything
@@ -410,7 +414,7 @@ class WeatherModelTrainer:
                     'scaler': scaler,
                     'results': results,
                     'importance': importance,
-                    'feature_columns': self.feature_columns
+                    'feature_columns': feature_cols
                 }
                 
                 # Save the model

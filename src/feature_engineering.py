@@ -576,38 +576,64 @@ class FeatureEngineer:
         """
         print("🚀 Starting complete feature engineering pipeline...")
         print(f"📊 Input data shape: {df.shape}")
-        
+        print(f"🔍 Input index type: {type(df.index)}")
+        print(f"🔍 Input index: {df.index[:3]}")
+
+        # Ensure we have a DatetimeIndex - convert if needed
+        if not isinstance(df.index, pd.DatetimeIndex):
+            print(f"⚠️ Converting index to DatetimeIndex...")
+            try:
+                df.index = pd.to_datetime(df.index)
+                print(f"✅ Successfully converted to DatetimeIndex")
+            except Exception as e:
+                print(f"❌ Failed to convert index: {e}")
+                raise ValueError("Could not convert DataFrame index to DatetimeIndex!")
+
+        # Save the original index (should be DatetimeIndex)
+        original_index = df.index
+
         # Step 1: Handle missing values first
         print("\n1️⃣ Handling missing values...")
         df_clean = self.handle_missing_values(df)
-        
+        df_clean.index = original_index
+
         # Step 2: Remove extreme outliers
         print("\n2️⃣ Removing extreme outliers...")
         df_clean = self.remove_outliers(df_clean)
-        
+        df_clean.index = original_index
+
         # Step 3: Create time-based features
         print("\n3️⃣ Creating time-based features...")
         df_features = self.create_time_features(df_clean)
-        
+        df_features.index = original_index
+
         # Step 4: Create derived weather features
         print("\n4️⃣ Creating derived weather features...")
         df_features = self.create_weather_derived_features(df_features)
-        
+        df_features.index = original_index
+
         # Step 5: Create lag features
         print("\n5️⃣ Creating lag features...")
         df_features = self.create_lag_features(df_features)
-        
+        df_features.index = original_index
+
         # Step 6: Create interaction features
         print("\n6️⃣ Creating interaction features...")
         df_features = self.create_interaction_features(df_features)
-        
+        df_features.index = original_index
+
         # Step 7: Create rolling statistics
         print("\n7️⃣ Creating rolling statistics...")
         df_features = self.create_rolling_statistics(df_features)
-        
+        df_features.index = original_index
+
         # Final cleanup: remove any remaining NaN values
         df_features = df_features.fillna(method='ffill').fillna(method='bfill')
-        
+
+        # Final check: ensure index is DatetimeIndex
+        if not isinstance(df_features.index, pd.DatetimeIndex):
+            df_features.index = pd.to_datetime(df_features.index)
+
         # Print summary of feature engineering
         print(f"\n🎉 Feature engineering completed!")
         print(f"📊 Output data shape: {df_features.shape}")
@@ -618,7 +644,7 @@ class FeatureEngineer:
         print(f"   - Lag features: {len([f for f in self.feature_columns if 'lag' in f])}")
         print(f"   - Interaction features: {len([f for f in self.feature_columns if 'interaction' in f])}")
         print(f"   - Rolling features: {len([f for f in self.feature_columns if 'avg' in f or 'std' in f or 'min' in f or 'max' in f])}")
-        
+
         return df_features
     
     def get_feature_importance_ranking(self, df: pd.DataFrame) -> pd.DataFrame:

@@ -191,25 +191,19 @@ class RiskAssessor:
     def get_risk_level(self, risk_score: float) -> str:
         """
         Convert risk score to risk level category
-        
         Args:
             risk_score: Risk score from 0-10
-            
         Returns:
-            Risk level: 'low', 'moderate', or 'high'
-            
-        Example:
-            get_risk_level(2.5) returns 'moderate'
-            get_risk_level(5.0) returns 'high'
+            Risk level: 'low', 'moderate', 'high', or 'extreme'
         """
-        if not validate_risk_score(risk_score):
-            return 'unknown'
-        
-        for level, (min_score, max_score) in self.risk_levels.items():
-            if min_score <= risk_score <= max_score:
-                return level
-        
-        return 'high'  # Default to high if score is out of range
+        if risk_score < 3.0:
+            return 'low'
+        elif risk_score < 5.5:
+            return 'moderate'
+        elif risk_score < 8.0:
+            return 'high'
+        else:
+            return 'extreme'
     
     def get_risk_justification(self, row: pd.Series) -> str:
         """
@@ -323,13 +317,21 @@ class RiskAssessor:
         risk_summary['low_risk_percentage'] = (risk_summary['low_risk_hours'] / total_hours) * 100
         risk_summary['moderate_risk_percentage'] = (risk_summary['moderate_risk_hours'] / total_hours) * 100
         risk_summary['high_risk_percentage'] = (risk_summary['high_risk_hours'] / total_hours) * 100
-        
+
+        # Calculate daily average risk for up to 3 days (assuming 72-hour forecast)
+        day1_avg_risk = risk_data.iloc[0:24]['risk_score'].mean() if len(risk_data) >= 24 else float('nan')
+        day2_avg_risk = risk_data.iloc[24:48]['risk_score'].mean() if len(risk_data) >= 48 else float('nan')
+        day3_avg_risk = risk_data.iloc[48:72]['risk_score'].mean() if len(risk_data) >= 72 else float('nan')
+
         analysis = {
             'overall_risk': overall_risk,
             'best_climbing_window': best_window,
             'worst_conditions': worst_window,
             'risk_summary': risk_summary,
-            'safety_recommendations': self.get_safety_recommendations(overall_risk)
+            'safety_recommendations': self.get_safety_recommendations(overall_risk),
+            'day1_avg_risk': day1_avg_risk,
+            'day2_avg_risk': day2_avg_risk,
+            'day3_avg_risk': day3_avg_risk
         }
         
         # Print analysis summary
@@ -340,6 +342,9 @@ class RiskAssessor:
         print(f"   Low: {risk_summary['low_risk_percentage']:.1f}% of time")
         print(f"   Moderate: {risk_summary['moderate_risk_percentage']:.1f}% of time")
         print(f"   High: {risk_summary['high_risk_percentage']:.1f}% of time")
+        print(f"   Day 1 Avg Risk: {day1_avg_risk:.2f}")
+        print(f"   Day 2 Avg Risk: {day2_avg_risk:.2f}")
+        print(f"   Day 3 Avg Risk: {day3_avg_risk:.2f}")
         
         return analysis
     

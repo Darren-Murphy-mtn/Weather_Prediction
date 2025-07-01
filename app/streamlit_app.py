@@ -18,6 +18,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import sys
 from pathlib import Path
+import re
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent
@@ -31,8 +32,8 @@ from utils import (
     round_to_significant_figures
 )
 from model_training import WeatherModelTrainer
-from risk_assessment import RiskAssessment
-from feature_engineering import FeatureEngineering
+from risk_assessment import RiskAssessor
+from feature_engineering import FeatureEngineer
 
 # Page configuration
 st.set_page_config(
@@ -188,57 +189,74 @@ def create_weather_plots(forecast_data):
     
     return fig
 
+def ordinal(n):
+    # Helper to get 1st, 2nd, 3rd, 4th, etc.
+    return "%d%s" % (n, "tsnrhtdd"[(n//10%10!=1)*(n%10<4)*n%10::4])
+
+def format_friendly_datetime(dt):
+    # Format: Monday, July 1st 7:56am
+    day_name = dt.strftime('%A')
+    month_name = dt.strftime('%B')
+    day = ordinal(dt.day)
+    hour = dt.strftime('%I').lstrip('0')
+    minute = dt.strftime('%M')
+    ampm = dt.strftime('%p').lower()
+    return f"{day_name}, {month_name} {day} {hour}:{minute}{ampm}"
+
+def format_window_str(window_str):
+    # Parse and format both datetimes in the window string
+    match = re.match(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) to (\d{4}-\d{2}-\d{2} \d{2}:\d{2})", window_str)
+    if not match:
+        return window_str
+    start_str, end_str = match.groups()
+    start_dt = pd.to_datetime(start_str)
+    end_dt = pd.to_datetime(end_str)
+    return f"{format_friendly_datetime(start_dt)} to {format_friendly_datetime(end_dt)}"
+
 def create_risk_plot(risk_assessment):
     """Create risk assessment plot"""
-    hourly_risks = risk_assessment['hourly_risks']
-    
-    if not hourly_risks:
+    risk_data = risk_assessment['risk_data']
+    if risk_data.empty:
         return None
-    
     # Extract data
-    timestamps = [hr['timestamp'] for hr in hourly_risks]
-    risk_scores = [hr['risk_score'] for hr in hourly_risks]
-    risk_levels = [hr['risk_level'] for hr in hourly_risks]
-    
-    # Color mapping
-    colors = {'low': 'green', 'moderate': 'orange', 'high': 'red'}
-    risk_colors = [colors.get(level, 'gray') for level in risk_levels]
-    
+    timestamps = risk_data.index
+    risk_scores = risk_data['risk_score'].values
+    risk_levels = risk_data['risk_level'].values
+    # Softer color palette
+    color_map = {'low': '#7fc97f', 'moderate': '#fdc086', 'high': '#f0027f', 'extreme': '#bf5b17'}
+    risk_colors = [color_map.get(level, '#bdbdbd') for level in risk_levels]
     # Create plot
     fig = go.Figure()
-    
     fig.add_trace(go.Scatter(
         x=timestamps,
         y=risk_scores,
         mode='lines+markers',
-        line=dict(color='black', width=2),
-        marker=dict(color=risk_colors, size=8),
+        line=dict(color='white', width=2),
+        marker=dict(color=risk_colors, size=10),
         name='Risk Score'
     ))
-    
     # Add threshold lines
-    fig.add_hline(y=1, line_dash="dash", line_color="green", 
-                  annotation_text="Low Risk Threshold")
-    fig.add_hline(y=3, line_dash="dash", line_color="orange", 
-                  annotation_text="Moderate Risk Threshold")
-    fig.add_hline(y=4, line_dash="dash", line_color="red", 
-                  annotation_text="High Risk Threshold")
-    
+    fig.add_hline(y=3.0, line_dash="dash", line_color="#7fc97f", annotation_text="Low Risk Threshold")
+    fig.add_hline(y=5.5, line_dash="dash", line_color="#fdc086", annotation_text="Moderate Risk Threshold")
+    fig.add_hline(y=8.0, line_dash="dash", line_color="#f0027f", annotation_text="High Risk Threshold")
     fig.update_layout(
         title="Risk Assessment Over Time",
         xaxis_title="Time",
         yaxis_title="Risk Score",
         height=400,
-        yaxis=dict(range=[0, 6])
+        yaxis=dict(range=[0, 10]),
+        plot_bgcolor='#222',
+        paper_bgcolor='#222',
+        font=dict(color='white')
     )
-    
+    fig.update_xaxes(title_text="Time")
     return fig
 
 def display_risk_assessment(risk_assessment):
     """Display risk assessment results"""
-    risk_level = risk_assessment['overall_risk']
-    risk_score = risk_assessment['overall_score']
-    
+    overall_analysis = risk_assessment['overall_analysis']
+    risk_level = overall_analysis['overall_risk']
+    risk_score = overall_analysis['risk_summary']['average_risk_score']
     # Risk level styling
     if risk_level == 'low':
         risk_class = 'risk-low'
@@ -246,30 +264,84 @@ def display_risk_assessment(risk_assessment):
     elif risk_level == 'moderate':
         risk_class = 'risk-moderate'
         risk_icon = '⚠️'
-    else:
+    elif risk_level == 'high':
         risk_class = 'risk-high'
         risk_icon = '🚨'
-    
+    else:
+        risk_class = 'risk-high'
+        risk_icon = '🛑'
     # Display risk summary
     st.markdown(f"""
     <div class="{risk_class}">
         <h3>{risk_icon} Overall Risk Level: {risk_level.upper()}</h3>
         <p><strong>Risk Score:</strong> {risk_score:.1f}/10</p>
-        <p><strong>Assessment:</strong> {risk_assessment['risk_justification']}</p>
+        <p><strong>Best Climbing Window:</strong> {format_window_str(overall_analysis['best_climbing_window'])}</p>
+        <p><strong>Worst Conditions:</strong> {format_window_str(overall_analysis['worst_conditions'])}</p>
     </div>
     """, unsafe_allow_html=True)
-    
+    # Add spacing
+    st.markdown("<br>", unsafe_allow_html=True)
     # Display day-by-day breakdown
     col1, col2, col3 = st.columns(3)
-    
     with col1:
-        st.metric("Day 1 Risk", f"{risk_assessment['day1_avg_risk']:.1f}/10")
-    
+        st.metric("Day 1 Risk", f"{overall_analysis['day1_avg_risk']:.1f}/10")
     with col2:
-        st.metric("Day 2 Risk", f"{risk_assessment['day2_avg_risk']:.1f}/10")
-    
+        st.metric("Day 2 Risk", f"{overall_analysis['day2_avg_risk']:.1f}/10")
     with col3:
-        st.metric("Day 3 Risk", f"{risk_assessment['day3_avg_risk']:.1f}/10")
+        st.metric("Day 3 Risk", f"{overall_analysis['day3_avg_risk']:.1f}/10")
+
+def parse_best_window_indices(best_window_str, forecast_data):
+    """Parse the best climbing window string and return start and end hour indices (0-72)"""
+    # Example: '2025-07-03 07:44 to 2025-07-03 17:44'
+    match = re.match(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}) to (\d{4}-\d{2}-\d{2} \d{2}:\d{2})", best_window_str)
+    if not match:
+        return 0, 0
+    start_str, end_str = match.groups()
+    start_dt = pd.to_datetime(start_str)
+    end_dt = pd.to_datetime(end_str)
+    # Find the closest indices in the forecast data
+    timestamps = forecast_data.index
+    start_idx = (timestamps >= start_dt).argmax()
+    end_idx = (timestamps >= end_dt).argmax()
+    return start_idx, end_idx
+
+def plot_best_climbing_window_bar(best_window_str, forecast_data, window_hours=10):
+    """Create a horizontal bar showing the best climbing window on a 0-72 hour scale"""
+    start_idx, end_idx = parse_best_window_indices(best_window_str, forecast_data)
+    # If the window is less than window_hours, extend it
+    if end_idx - start_idx < window_hours:
+        end_idx = min(start_idx + window_hours, len(forecast_data)-1)
+    x = list(range(len(forecast_data)))
+    y = [1]*len(forecast_data)
+    colors = ['#e0e0e0']*len(forecast_data)
+    for i in range(start_idx, end_idx):
+        colors[i] = '#4CAF50'  # Highlight best window in green
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=x,
+        y=y,
+        marker_color=colors,
+        orientation='v',
+        hoverinfo='skip',
+        showlegend=False
+    ))
+    fig.update_layout(
+        height=100,
+        width=800,
+        title="Best 10-Hour Climbing Window (Green Box)",
+        xaxis=dict(
+            title="Forecast Hour (0-72)",
+            tickmode='linear',
+            tick0=0,
+            dtick=6,
+            range=[0, 72]
+        ),
+        yaxis=dict(
+            visible=False
+        ),
+        margin=dict(l=40, r=40, t=40, b=40)
+    )
+    return fig
 
 def main():
     """Main Streamlit application"""
@@ -313,8 +385,8 @@ def main():
         forecast_data = load_sample_data()
         
         # Create risk assessment
-        risk_assessor = RiskAssessment()
-        risk_assessment = risk_assessor.assess_forecast_risk(forecast_data)
+        risk_assessor = RiskAssessor()
+        risk_assessment = risk_assessor.assess_climbing_safety(forecast_data)
         
     else:
         # Load trained models
@@ -324,15 +396,15 @@ def main():
             
             # For now, use sample data (in real implementation, this would use actual models)
             forecast_data = load_sample_data()
-            risk_assessor = RiskAssessment()
-            risk_assessment = risk_assessor.assess_forecast_risk(forecast_data)
+            risk_assessor = RiskAssessor()
+            risk_assessment = risk_assessor.assess_climbing_safety(forecast_data)
             
         except Exception as e:
             st.error(f"❌ Error loading models: {e}")
             st.info("Falling back to sample data for demonstration.")
             forecast_data = load_sample_data()
-            risk_assessor = RiskAssessment()
-            risk_assessment = risk_assessor.assess_forecast_risk(forecast_data)
+            risk_assessor = RiskAssessor()
+            risk_assessment = risk_assessor.assess_climbing_safety(forecast_data)
     
     # Display forecast information
     st.subheader(f"📅 Forecast for {forecast_datetime.strftime('%B %d, %Y at %I:%M %p')}")
@@ -363,6 +435,12 @@ def main():
     st.subheader("⚠️ Safety Assessment")
     display_risk_assessment(risk_assessment)
     
+    # Add best climbing window bar plot
+    st.subheader("🟩 Best Climbing Window (Visual)")
+    best_window_str = risk_assessment['overall_analysis']['best_climbing_window']
+    window_bar_fig = plot_best_climbing_window_bar(best_window_str, forecast_data, window_hours=10)
+    st.plotly_chart(window_bar_fig, use_container_width=True)
+    
     # Risk plot
     risk_fig = create_risk_plot(risk_assessment)
     if risk_fig:
@@ -370,7 +448,7 @@ def main():
     
     # Safety recommendations
     st.subheader("🛡️ Safety Recommendations")
-    recommendations = risk_assessor.get_safety_recommendations(risk_assessment['overall_risk'])
+    recommendations = risk_assessment['safety_recommendations']
     
     for rec in recommendations:
         st.write(rec)
@@ -378,18 +456,19 @@ def main():
     # Detailed hourly breakdown
     st.subheader("📋 Hourly Risk Breakdown")
     
-    # Create hourly risk table
-    hourly_table = risk_assessor.format_hourly_risk_table(risk_assessment['hourly_risks'])
+    # Show risk data table
+    risk_data = risk_assessment['risk_data']
     
-    if not hourly_table.empty:
+    if not risk_data.empty:
         # Show first 24 hours by default
         st.write("**First 24 Hours:**")
-        st.dataframe(hourly_table.head(24), use_container_width=True)
+        display_columns = ['temperature', 'wind_speed', 'pressure', 'precipitation', 'risk_score', 'risk_level']
+        st.dataframe(risk_data[display_columns].head(24), use_container_width=True)
         
         # Option to show all hours
         if st.checkbox("Show full 72-hour breakdown"):
             st.write("**Full 72-Hour Forecast:**")
-            st.dataframe(hourly_table, use_container_width=True)
+            st.dataframe(risk_data[display_columns], use_container_width=True)
     
     # Footer
     st.markdown("---")
