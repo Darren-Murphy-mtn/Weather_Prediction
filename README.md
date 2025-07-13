@@ -1,8 +1,8 @@
-# 🏔️ Mount Rainier Weather Prediction Tool
+#  Mount Rainier Weather Prediction Tool
 
 **A machine learning-powered weather forecasting and safety prediction system for Mount Rainier summit climbing.**
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
@@ -15,7 +15,7 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🎯 Overview
+##  Overview
 
 The Mount Rainier Weather Prediction Tool is a comprehensive system designed to help climbers make informed decisions about attempting to summit Mount Rainier (14,411 feet / 4,392 meters). This tool combines advanced machine learning techniques with multiple weather data sources to provide:
 
@@ -24,7 +24,7 @@ The Mount Rainier Weather Prediction Tool is a comprehensive system designed to 
 - **Climbing recommendations** and optimal timing windows
 - **Emergency alerts** for dangerous weather conditions
 
-### 🎯 Why This Tool Exists
+###  Why This Tool Exists
 
 Mount Rainier is one of the most dangerous mountains in the United States, with rapidly changing weather conditions that can create life-threatening situations. Traditional weather forecasts often don't provide the specific, elevation-adjusted predictions needed for safe climbing decisions. This tool addresses that gap by:
 
@@ -33,70 +33,70 @@ Mount Rainier is one of the most dangerous mountains in the United States, with 
 3. **Providing safety-focused analysis** rather than just weather data
 4. **Using machine learning** to identify patterns that human forecasters might miss
 
-## ✨ Features
+##  Features
 
-### 🌤️ Weather Forecasting
+### Weather Forecasting
 - **72-hour predictions** for temperature, wind speed, air pressure, and precipitation
 - **Elevation-adjusted forecasts** specifically for Mount Rainier's summit (14,411 feet)
 - **Hourly granularity** for precise planning
 - **Multiple weather variables** to understand complete conditions
 
-### 🛡️ Safety Assessment
+### Safety Assessment
 - **Risk scoring system** (0-10 scale) for each hour
 - **Traffic light system** (Green/Yellow/Red) for easy understanding
 - **Risk factor analysis** including high winds, low temperatures, heavy precipitation
 - **Climbing window recommendations** for optimal timing
 
-### 📊 Data Visualization
+### Data Visualization
 - **Interactive weather charts** using Plotly
 - **Risk timeline visualization** showing danger periods
 - **Weather summary statistics** for quick assessment
 - **Detailed hourly data tables** for thorough analysis
 
-### 🌐 Web Interface
+### Web Interface
 - **User-friendly Streamlit dashboard** accessible from any device
 - **Real-time forecast generation** with customizable date/time selection
 - **Downloadable reports** in CSV format for offline reference
 - **Responsive design** that works on desktop and mobile
 
-### 🤖 Machine Learning
+### Machine Learning
 - **XGBoost regression models** for each weather variable
 - **Feature engineering** with 100+ derived weather features
 - **Time series analysis** to capture weather patterns
 - **Model performance tracking** with accuracy metrics
 
-## 🏗️ Architecture
+## Architecture
 
 The system is built with a modular architecture that separates concerns and allows for easy maintenance and extension:
 
 ```
 Weather_Prediction/
-├── 📁 app/                    # Web application
+├── app/                    # Web application
 │   └── streamlit_app.py      # Main Streamlit interface
-├── 📁 config/                 # Configuration settings
+├── config/                 # Configuration settings
 │   ├── __init__.py
 │   ├── config.py             # All system parameters and constants
 │   └── env_example.txt       # Environment variables template
-├── 📁 data/                   # Data storage
+├── data/                   # Data storage
 │   ├── raw/                  # Original downloaded data
 │   ├── processed/            # Cleaned and merged data
 │   └── models/               # Trained machine learning models
-├── 📁 src/                    # Core application code
+├── src/                    # Core application code
 │   ├── __init__.py
 │   ├── data_ingestion.py     # Data collection and processing
 │   ├── feature_engineering.py # Feature creation and data preparation
 │   ├── model_training.py     # Machine learning model training
 │   ├── risk_assessment.py    # Safety analysis and risk scoring
 │   └── utils.py              # Helper functions and utilities
-├── 📁 notebooks/              # Jupyter notebooks for analysis
+├── notebooks/              # Jupyter notebooks for analysis
 │   ├── 01_data_exploration.ipynb
 │   └── 01_data_exploration.py
-├── 📁 tests/                  # Unit tests and validation
+├── tests/                  # Unit tests and validation
 ├── requirements.txt           # Python dependencies
 └── README.md                 # This file
 ```
 
-### 🔄 Data Flow
+### Data Flow
 
 1. **Data Ingestion** (`data_ingestion.py`)
    - Downloads ERA5 satellite weather data
@@ -127,7 +127,7 @@ Weather_Prediction/
    - Displays results with interactive visualizations
    - Offers data download and sharing capabilities
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -163,10 +163,10 @@ Weather_Prediction/
 
 5. **Verify installation**
    ```bash
-   python -c "import streamlit, pandas, numpy, plotly; print('✅ All dependencies installed successfully!')"
+   python -c "import streamlit, pandas, numpy, plotly; print('All dependencies installed successfully!')"
    ```
 
-### 🐛 Troubleshooting
+###  Troubleshooting
 
 **Common Issues:**
 
@@ -184,9 +184,9 @@ Weather_Prediction/
 - **Missing data files:**
   The system will create sample data automatically if real data is not available.
 
-## 📖 Usage
+## Usage
 
-### 🖥️ Running the Web Application
+### Running the Web Application
 
 1. **Start the Streamlit app**
    ```bash
@@ -207,7 +207,7 @@ Weather_Prediction/
    - Review the safety assessment
    - Download detailed data if needed
 
-### 🔧 Running Individual Components
+### Running Individual Components
 
 **Data Ingestion:**
 ```bash
@@ -229,7 +229,7 @@ python src/model_training.py
 python src/risk_assessment.py
 ```
 
-### 📊 Understanding the Results
+### Understanding the Results
 
 **Weather Forecast:**
 - **Temperature:** Air temperature at summit elevation (14,411 feet)
@@ -248,33 +248,33 @@ python src/risk_assessment.py
 - **Critical Hours:** Specific times with high risk factors
 - **Emergency Alerts:** Immediate warnings for next 24 hours
 
-## 📡 Data Sources
+## Data Sources
 
-### 🌍 ERA5 Satellite Data
+### ERA5 Satellite Data
 - **Source:** Copernicus Climate Data Store (CDS)
 - **Coverage:** Global weather data from satellites and models
 - **Variables:** Temperature, wind, pressure, precipitation
 - **Resolution:** 0.25° latitude/longitude (about 15 miles)
 - **Access:** Free registration required for API access
 
-### 🏔️ Camp Muir Weather Station
+### Camp Muir Weather Station
 - **Location:** Mount Rainier at 10,000 feet elevation
 - **Source:** National Park Service weather station
 - **Variables:** Temperature, wind, pressure, precipitation
 - **Frequency:** Hourly measurements
 - **Quality:** High-quality ground truth data
 
-### 🔄 Data Processing
+### Data Processing
 - **Interpolation:** Weather data interpolated to Mount Rainier's exact coordinates
 - **Elevation Correction:** Temperature adjusted for summit elevation
 - **Quality Control:** Outliers removed, missing data filled
 - **Feature Engineering:** 100+ derived features created for machine learning
 
-## ⚠️ Safety Disclaimer
+## Safety Disclaimer
 
 **IMPORTANT: This tool is for informational purposes only.**
 
-### 🚨 Critical Safety Information
+### Critical Safety Information
 
 - **Weather conditions on Mount Rainier can change rapidly and unpredictably**
 - **This tool provides predictions, not guarantees**
@@ -283,14 +283,14 @@ python src/risk_assessment.py
 - **Have proper equipment and training**
 - **Be prepared to turn back if conditions deteriorate**
 
-### 📞 Emergency Information
+### Emergency Information
 
 - **Mount Rainier National Park:** (360) 569-2211
 - **Emergency Services:** 911
 - **Weather Information:** National Weather Service
 - **Climbing Permits:** Required for all summit attempts
 
-### 🛡️ Risk Factors Considered
+### Risk Factors Considered
 
 The tool evaluates these specific risk factors:
 
@@ -301,9 +301,9 @@ The tool evaluates these specific risk factors:
 
 **Remember:** The mountain doesn't care about your plans. Always prioritize safety over summit goals.
 
-## 🔬 Technical Details
+## Technical Details
 
-### 🤖 Machine Learning Models
+### Machine Learning Models
 
 **Algorithm:** XGBoost (Extreme Gradient Boosting)
 - **Type:** Regression models for each weather variable
@@ -317,7 +317,7 @@ The tool evaluates these specific risk factors:
 - **Pressure:** ~0.2-0.3 inHg average error
 - **Precipitation:** ~0.1-0.2 mm/hr average error
 
-### 📊 Feature Engineering
+### Feature Engineering
 
 **Time Features:**
 - Hour of day, day of week, month, season
@@ -341,7 +341,7 @@ The tool evaluates these specific risk factors:
 - Pressure × precipitation relationships
 - Time × weather variable combinations
 
-### 🌐 Web Application
+### Web Application
 
 **Framework:** Streamlit
 - **Real-time updates:** Live forecast generation
@@ -354,7 +354,7 @@ The tool evaluates these specific risk factors:
 - **Memory usage:** ~500MB typical
 - **Concurrent users:** Limited by system resources
 
-### 📁 Data Storage
+### Data Storage
 
 **File Formats:**
 - **Raw data:** NetCDF (ERA5), CSV (Camp Muir)
@@ -367,19 +367,13 @@ The tool evaluates these specific risk factors:
 - **Forecast data:** 72 hours × 4 variables
 - **Feature data:** ~100+ columns per timepoint
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions to improve the Mount Rainier Weather Prediction Tool!
 
-### 🛠️ How to Contribute
 
-1. **Fork the repository**
-2. **Create a feature branch**
-3. **Make your changes**
-4. **Add tests if applicable**
-5. **Submit a pull request**
 
-### 🎯 Areas for Improvement
+### Areas for Improvement
 
 - **Additional data sources** (more weather stations, radar data)
 - **Enhanced machine learning models** (neural networks, ensemble methods)
@@ -388,7 +382,7 @@ We welcome contributions to improve the Mount Rainier Weather Prediction Tool!
 - **Real-time updates** (continuous data streaming)
 - **User accounts** (save forecasts, track climbing history)
 
-### 🐛 Reporting Issues
+### Reporting Issues
 
 Please report bugs, feature requests, or safety concerns through:
 - **GitHub Issues:** Create a new issue with detailed description
@@ -399,33 +393,10 @@ Please report bugs, feature requests, or safety concerns through:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### 📋 License Terms
 
-- **Use:** Free for personal and commercial use
-- **Modify:** Modify and distribute as needed
-- **Attribution:** Credit the original authors
-- **Liability:** No warranty or liability for damages
-- **Safety:** Users responsible for their own safety decisions
-
-## 🙏 Acknowledgments
-
-### 🏛️ Organizations
-- **National Park Service** for Camp Muir weather data
-- **Copernicus Climate Data Store** for ERA5 satellite data
-- **National Weather Service** for weather forecasting standards
-
-### 👥 Contributors
-- **Weather Prediction Team** - Core development
-- **Mount Rainier climbing community** - Feedback and testing
-- **Open source community** - Libraries and tools
-
-### 📚 Resources
-- **Mount Rainier climbing guides** and safety information
-- **Weather forecasting literature** and best practices
-- **Machine learning research** in meteorology
-
+## Acknowledgments
 ---
 
-**🏔️ Remember: The mountain will always be there. Make sure you are too.**
+** Remember: The mountain will always be there. Make sure you are too.**
 
 *This tool is dedicated to the memory of climbers who have lost their lives on Mount Rainier. May their legacy inspire safer climbing practices for all who follow.*
