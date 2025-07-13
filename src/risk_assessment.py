@@ -21,6 +21,7 @@ from utils import (
     round_to_significant_figures
 )
 
+# Updated 4:22pm, made formatting changes
 class RiskAssessor:
     """
     Assesses climbing safety risks based on weather predictions

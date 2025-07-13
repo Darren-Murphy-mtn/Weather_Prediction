@@ -1,3 +1,4 @@
+# Updated 4:22pm, made formatting changes
 # Mount Rainier Weather Prediction Tool - Environment Variables
 
 # ERA5 Climate Data Store API

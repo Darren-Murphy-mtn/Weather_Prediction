@@ -32,6 +32,7 @@ except ImportError as e:
     print("Please install required packages: pip install scikit-learn xgboost")
     sys.exit(1)
 
+# Updated 4:22pm, made formatting changes
 class WeatherModelTrainer:
     """
     Trains machine learning models to predict Mount Rainier weather conditions

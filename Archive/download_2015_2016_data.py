@@ -11,6 +11,7 @@ This script downloads historical weather data from the ERA5 dataset for:
 The data is downloaded in two separate batches to avoid API limits and ensure
 successful downloads for all variables.
 
+# Updated 4:22pm, made formatting changes
 
 """
 

@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 import time
 
+# Updated 4:22pm, made formatting changes
+
 def run_script(script_name, description):
     """
     Run a Python script and handle errors

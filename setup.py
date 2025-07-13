@@ -1,3 +1,4 @@
+# Updated 4:22pm, made formatting changes
 #!/usr/bin/env python3
 """
 Setup script for Mount Rainier Weather Prediction Tool

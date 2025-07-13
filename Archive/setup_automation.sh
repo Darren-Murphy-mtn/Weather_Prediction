@@ -1,6 +1,7 @@
 #!/bin/bash
 # Setup script for automated daily data updates
 
+# Updated 4:22pm, made formatting changes
 echo "Setting up automated daily data updates for Mount Rainier Weather Prediction"
 
 # Get the project directory

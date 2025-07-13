@@ -1,3 +1,4 @@
+# Updated 4:22pm, made formatting changes
 """
 Configuration settings for Mount Rainier Weather Prediction Tool
 

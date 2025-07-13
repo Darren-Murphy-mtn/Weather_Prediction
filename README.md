@@ -1,4 +1,4 @@
-#  Mount Rainier Weather Prediction Tool
+# Updated 4:22pm, made formatting changes
 
 **A machine learning-powered weather forecasting and safety prediction system for Mount Rainier summit climbing.**
 
