@@ -28,9 +28,10 @@ logging.basicConfig(
     ]
 )
 
+# Updated 4:22pm, made formatting changes
 def update_historical_data():
     """Update historical data with latest observations"""
-    logging.info("🔄 Updating historical data...")
+    logging.info("Updating historical data...")
     
     try:
         # Load existing historical data
@@ -41,16 +42,16 @@ def update_historical_data():
             
             # Check if we need to add new data (e.g., from Camp Muir or ERA5)
             # This would depend on your data sources
-            logging.info(f"✅ Historical data loaded: {len(df)} records")
+            logging.info(f"Historical data loaded: {len(df)} records")
         else:
-            logging.warning("⚠️ No historical data file found")
+            logging.warning("No historical data file found")
             
     except Exception as e:
-        logging.error(f"❌ Error updating historical data: {e}")
+        logging.error(f"Error updating historical data: {e}")
 
 def download_latest_gfs():
     """Download the latest GFS forecast"""
-    logging.info("🌍 Downloading latest GFS forecast...")
+    logging.info("Downloading latest GFS forecast...")
     
     try:
         # Run the GFS download script
@@ -59,16 +60,16 @@ def download_latest_gfs():
         ], capture_output=True, text=True)
         
         if result.returncode == 0:
-            logging.info("✅ GFS forecast downloaded successfully")
+            logging.info("GFS forecast downloaded successfully")
         else:
-            logging.error(f"❌ GFS download failed: {result.stderr}")
+            logging.error(f"GFS download failed: {result.stderr}")
             
     except Exception as e:
-        logging.error(f"❌ Error downloading GFS: {e}")
+        logging.error(f"Error downloading GFS: {e}")
 
 def retrain_models_if_needed():
     """Retrain models if enough new data is available"""
-    logging.info("🤖 Checking if models need retraining...")
+    logging.info("Checking if models need retraining...")
     
     try:
         # Check if we have enough new data (e.g., 7 days of new data)
@@ -80,21 +81,21 @@ def retrain_models_if_needed():
             import os
             model_age = time.time() - os.path.getmtime(model_file)
             if model_age > 7 * 24 * 3600:  # 7 days
-                logging.info("🔄 Retraining models (weekly update)...")
+                logging.info("Retraining models (weekly update)...")
                 subprocess.run([sys.executable, "train_models.py"])
-                logging.info("✅ Models retrained successfully")
+                logging.info("Models retrained successfully")
             else:
-                logging.info("✅ Models are recent, no retraining needed")
+                logging.info("Models are recent, no retraining needed")
         else:
-            logging.info("🔄 Training models for the first time...")
+            logging.info("Training models for the first time...")
             subprocess.run([sys.executable, "train_models.py"])
             
     except Exception as e:
-        logging.error(f"❌ Error in model retraining: {e}")
+        logging.error(f"Error in model retraining: {e}")
 
 def daily_update():
     """Main daily update function"""
-    logging.info("🚀 Starting daily data update...")
+    logging.info("Starting daily data update...")
     
     # Create logs directory if it doesn't exist
     Path("logs").mkdir(exist_ok=True)
@@ -108,7 +109,7 @@ def daily_update():
     # Step 3: Retrain models if needed
     retrain_models_if_needed()
     
-    logging.info("✅ Daily update completed successfully")
+    logging.info("Daily update completed successfully")
 
 def run_once():
     """Run the update once (for testing)"""
@@ -127,7 +128,7 @@ if __name__ == "__main__":
         # Schedule daily updates at 6 AM
         schedule.every().day.at("06:00").do(daily_update)
         
-        logging.info("📅 Scheduled daily updates at 6:00 AM")
+        logging.info("Scheduled daily updates at 6:00 AM")
         logging.info("Press Ctrl+C to stop")
         
         try:
@@ -135,4 +136,4 @@ if __name__ == "__main__":
                 schedule.run_pending()
                 time.sleep(60)  # Check every minute
         except KeyboardInterrupt:
-            logging.info("🛑 Daily update scheduler stopped") 
+            logging.info("Daily update scheduler stopped") 

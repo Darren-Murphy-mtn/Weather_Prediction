@@ -26,6 +26,8 @@ GFS_BASE = "https://nomads.ncep.noaa.gov:9090/dods/gfs_0p25/gfs{date}/gfs_0p25_{
 # Variables to extract (2m temp, 10m wind components, surface pressure, total precip)
 VARIABLES = ['tmp2m', 'ugrd10m', 'vgrd10m', 'pressfc', 'apcpsfc']
 
+# Updated 4:22pm, made formatting changes
+
 def get_latest_gfs_run():
     """Get the latest available GFS run time"""
     now = datetime.now(timezone.utc)
@@ -65,7 +67,7 @@ def download_gfs_with_retry(url, max_retries=3, timeout=30):
                 # First try: direct xarray open
                 try:
                     ds = xr.open_dataset(url, timeout=timeout)
-                    logging.info("✅ Successfully opened GFS dataset directly")
+                    logging.info("Successfully opened GFS dataset directly")
                     return ds
                 except Exception as e:
                     logging.warning(f"Direct xarray open failed: {e}")
@@ -77,7 +79,7 @@ def download_gfs_with_retry(url, max_retries=3, timeout=30):
                     response.raise_for_status()
                     # Try to open with xarray from memory
                     ds = xr.open_dataset(BytesIO(response.content))
-                    logging.info("✅ Successfully downloaded GFS data via requests")
+                    logging.info("Successfully downloaded GFS data via requests")
                     return ds
                 except Exception as e:
                     logging.warning(f"Requests download failed: {e}")
@@ -88,7 +90,7 @@ def download_gfs_with_retry(url, max_retries=3, timeout=30):
                     # Try alternative URL format
                     alt_url = url.replace(":9090", "")
                     ds = xr.open_dataset(alt_url, timeout=timeout)
-                    logging.info("✅ Successfully opened GFS dataset with alternative URL")
+                    logging.info("Successfully opened GFS dataset with alternative URL")
                     return ds
                 except Exception as e:
                     logging.warning(f"Alternative URL failed: {e}")
@@ -202,12 +204,12 @@ def create_sample_gfs_data():
 
 def main():
     """Main function to download and process GFS data"""
-    logging.info("🚀 Starting GFS forecast download for Mount Rainier...")
+    logging.info("Starting GFS forecast download for Mount Rainier...")
     
     try:
         # Get latest GFS run
         date, hour = get_latest_gfs_run()
-        logging.info(f"📅 Using GFS run: {date} {hour}Z")
+        logging.info(f"Using GFS run: {date} {hour}Z")
         
         # Download GFS data
         ds = download_gfs_xarray(date, hour)
@@ -220,34 +222,34 @@ def main():
                 # Save to CSV
                 output_file = "data/processed/gfs_forecast_mount_rainier.csv"
                 df.to_csv(output_file, index=False)
-                logging.info(f"✅ GFS forecast saved to {output_file}")
-                logging.info(f"📊 Forecast data shape: {df.shape}")
-                logging.info(f"📈 Sample data:\n{df.head()}")
+                logging.info(f"GFS forecast saved to {output_file}")
+                logging.info(f"Forecast data shape: {df.shape}")
+                logging.info(f"Sample data:\n{df.head()}")
                 return df
             else:
-                logging.warning("⚠️ No valid data extracted, creating sample data")
+                logging.warning("No valid data extracted, creating sample data")
                 df = create_sample_gfs_data()
         else:
-            logging.warning("⚠️ GFS download failed, creating sample data")
+            logging.warning("GFS download failed, creating sample data")
             df = create_sample_gfs_data()
         
         # Save sample data
         output_file = "data/processed/gfs_forecast_mount_rainier.csv"
         df.to_csv(output_file, index=False)
-        logging.info(f"✅ Sample GFS forecast saved to {output_file}")
-        logging.info(f"📊 Sample data shape: {df.shape}")
+        logging.info(f"Sample GFS forecast saved to {output_file}")
+        logging.info(f"Sample data shape: {df.shape}")
         
         return df
         
     except Exception as e:
-        logging.error(f"❌ Error in GFS download process: {e}")
-        logging.info("🔄 Creating fallback sample data...")
+        logging.error(f"Error in GFS download process: {e}")
+        logging.info("Creating fallback sample data...")
         
         # Create fallback sample data
         df = create_sample_gfs_data()
         output_file = "data/processed/gfs_forecast_mount_rainier.csv"
         df.to_csv(output_file, index=False)
-        logging.info(f"✅ Fallback sample data saved to {output_file}")
+        logging.info(f"Fallback sample data saved to {output_file}")
         
         return df
 

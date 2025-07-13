@@ -1,3 +1,5 @@
+# Updated 4:22pm, made formatting changes
+
 # Installation Guide
 
 This guide will help you set up the Mount Rainier Weather Prediction Tool on your system.
@@ -43,7 +45,7 @@ python test_app.py
 
 If all tests pass, you should see:
 ```
-✅ All tests passed! The app should work correctly.
+All tests passed! The app should work correctly.
 ```
 
 ### 5. Run the Application

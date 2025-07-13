@@ -1,3 +1,4 @@
+# Updated 4:22pm, made formatting changes
 import pandas as pd
 import numpy as np
 import xarray as xr
@@ -71,4 +72,4 @@ print("\nDescriptive statistics after cleaning:")
 print(df_clean.describe())
 
 df_clean.to_csv(OUTPUT_CSV)
-print(f"✅ Saved cleaned data to {OUTPUT_CSV}") 
+print(f"Saved cleaned data to {OUTPUT_CSV}") 
