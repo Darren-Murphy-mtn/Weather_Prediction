@@ -554,25 +554,25 @@ def show_forecast_page():
     try:
         temp_value = current[temp_col] if temp_col in current.index else "N/A"
         cols[0].metric("Temperature", f"{temp_value:.1f}°F" if temp_value != "N/A" else "N/A")
-    except:
+    except Exception as e:
         cols[0].metric("Temperature", "N/A")
     
     try:
         wind_value = current[wind_col] if wind_col in current.index else "N/A"
         cols[1].metric("Wind Speed", f"{wind_value:.1f} mph" if wind_value != "N/A" else "N/A")
-    except:
+    except Exception as e:
         cols[1].metric("Wind Speed", "N/A")
     
     try:
         pressure_value = current[pressure_col] if pressure_col in current.index else "N/A"
         cols[2].metric("Pressure", f"{pressure_value:.1f} hPa" if pressure_value != "N/A" else "N/A")
-    except:
+    except Exception as e:
         cols[2].metric("Pressure", "N/A")
     
     try:
         precip_value = current[precip_col] if precip_col in current.index else "N/A"
         cols[3].metric("Precipitation", f"{precip_value:.2f} in/hr" if precip_value != "N/A" else "N/A")
-    except:
+    except Exception as e:
         cols[3].metric("Precipitation", "N/A")
     
     # Four separate graphs for each variable with modern color palette
