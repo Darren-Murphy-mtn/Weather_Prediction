@@ -23,7 +23,7 @@ from config.config import PROCESSED_DATA_DIR, MODELS_DIR, TARGET_VARIABLES
 
 def load_trained_models():
     """Load all trained models from disk"""
-    print("🤖 Loading trained models...")
+    print(" Loading trained models")
     
     models = {}
     
@@ -43,31 +43,31 @@ def load_trained_models():
             try:
                 with open(model_path, 'rb') as f:
                     models[target_var] = pickle.load(f)
-                print(f"   ✅ Loaded {target_var} model")
+                print(f"    Loaded {target_var} model")
             except Exception as e:
-                print(f"   ❌ Error loading {target_var} model: {e}")
+                print(f"    Error loading {target_var} model: {e}")
         else:
-            print(f"   ❌ Model file not found: {model_path}")
+            print(f"    Model file not found: {model_path}")
     
     return models
 
 def load_test_data(year):
     """Load test data for specified year"""
-    print(f"📊 Loading {year} test data...")
+    print(f" Loading {year} test data")
     
     test_file = PROCESSED_DATA_DIR / f"TEST_ERA5_{year}.csv"
     
     if not test_file.exists():
-        print(f"❌ Test data file not found: {test_file}")
+        print(f" Test data file not found: {test_file}")
         return None
     
     try:
         df = pd.read_csv(test_file, index_col=0, parse_dates=True)
-        print(f"   ✅ Loaded {year} test data: {df.shape}")
-        print(f"   📅 Date range: {df.index.min()} to {df.index.max()}")
+        print(f"    Loaded {year} test data: {df.shape}")
+        print(f"   Date range: {df.index.min()} to {df.index.max()}")
         return df
     except Exception as e:
-        print(f"   ❌ Error loading test data: {e}")
+        print(f"   Error loading test data: {e}")
         return None
 
 def create_basic_features(df):
@@ -80,7 +80,7 @@ def create_basic_features(df):
     Returns:
         DataFrame with basic features
     """
-    print("🔧 Creating basic features...")
+    print(" Creating basic features.")
     
     df_features = df.copy()
     
@@ -159,22 +159,22 @@ def create_basic_features(df):
     # Fill NaN values
     df_features = df_features.fillna(method='ffill').fillna(method='bfill').fillna(0)
     
-    print(f"   ✅ Created {len(df_features.columns)} features")
+    print(f"   Created {len(df_features.columns)} features")
     return df_features
 
 def evaluate_model_performance(models, df_features, year):
     """Evaluate model performance on test data"""
-    print(f"📈 Evaluating model performance on {year} data...")
+    print(f" Evaluating model performance on {year} data...")
     
     results = {}
     
     for target_var in TARGET_VARIABLES:
         if target_var not in models:
-            print(f"   ⚠️ No model found for {target_var}")
+            print(f"   No model found for {target_var}")
             continue
         
         if target_var not in df_features.columns:
-            print(f"   ⚠️ Target variable {target_var} not in test data")
+            print(f"    Target variable {target_var} not in test data")
             continue
         
         model = models[target_var]
@@ -185,7 +185,7 @@ def evaluate_model_performance(models, df_features, year):
                        df_features[col].dtype in ['int64', 'float64', 'int32', 'float32']]
         
         if not feature_cols:
-            print(f"   ❌ No features found for {target_var}")
+            print(f"   No features found for {target_var}")
             continue
         
         # Prepare features and target
@@ -198,7 +198,7 @@ def evaluate_model_performance(models, df_features, year):
         y_test = y_test[valid_mask]
         
         if len(X_test) == 0:
-            print(f"   ❌ No valid data for {target_var}")
+            print(f"   No valid data for {target_var}")
             continue
         
         # Make predictions
@@ -225,7 +225,7 @@ def evaluate_model_performance(models, df_features, year):
                 'y_pred_mean': y_pred.mean()
             }
             
-            print(f"   ✅ {target_var}:")
+            print(f"    {target_var}:")
             print(f"      MAE: {mae:.3f}")
             print(f"      RMSE: {rmse:.3f}")
             print(f"      MAPE: {mape:.1f}%")
@@ -233,7 +233,7 @@ def evaluate_model_performance(models, df_features, year):
             print(f"      Samples: {len(y_test)}")
             
         except Exception as e:
-            print(f"   ❌ Error evaluating {target_var}: {e}")
+            print(f"    Error evaluating {target_var}: {e}")
             print(f"   Debug: Feature columns: {len(feature_cols)}")
             print(f"   Debug: X_test shape: {X_test.shape}")
             print(f"   Debug: y_test shape: {y_test.shape}")
@@ -242,10 +242,10 @@ def evaluate_model_performance(models, df_features, year):
 
 def save_results(results, year):
     """Save evaluation results to file"""
-    print(f"\n💾 Saving evaluation results for {year}...")
+    print(f"\n Saving evaluation results for {year}...")
     
     if not results:
-        print("   ⚠️ No results to save")
+        print("   No results to save")
         return
     
     # Create results DataFrame
@@ -254,24 +254,24 @@ def save_results(results, year):
     # Save to CSV
     results_file = PROCESSED_DATA_DIR / f"model_evaluation_{year}_basic.csv"
     results_df.to_csv(results_file)
-    print(f"   ✅ Results saved to {results_file}")
+    print(f"    Results saved to {results_file}")
     
     # Print summary
-    print(f"\n📋 {year} Evaluation Summary:")
+    print(f"\n {year} Evaluation Summary:")
     print(results_df.round(3))
 
 def main():
     """Main function to test models on both years"""
-    print("🧪 Mount Rainier Model Testing - Basic")
+    print(" Mount Rainier Model Testing - Basic")
     print("=" * 60)
     
     # Load trained models
     models = load_trained_models()
     if not models:
-        print("❌ No models loaded!")
+        print(" No models loaded!")
         return
     
-    print(f"✅ Loaded {len(models)} models")
+    print(f" Loaded {len(models)} models")
     
     # Test on both years
     for year in ['2015', '2016']:
@@ -291,9 +291,9 @@ def main():
         # Save results
         save_results(results, year)
         
-        print(f"\n🎉 {year} model testing completed!")
-        print(f"📊 Tested on {len(test_data)} records from {year}")
-        print(f"🔧 Used {len([col for col in df_features.columns if col not in TARGET_VARIABLES and df_features[col].dtype in ['int64', 'float64', 'int32', 'float32']])} features")
+        print(f"\n {year} model testing completed!")
+        print(f" Tested on {len(test_data)} records from {year}")
+        print(f" Used {len([col for col in df_features.columns if col not in TARGET_VARIABLES and df_features[col].dtype in ['int64', 'float64', 'int32', 'float32']])} features")
 
 if __name__ == "__main__":
     main() 
