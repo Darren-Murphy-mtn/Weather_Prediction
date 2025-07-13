@@ -1,3 +1,4 @@
+# Updated 4:22pm, made formatting changes
 """
 Mount Rainier Weather Prediction Web Application
 
@@ -5,8 +6,6 @@ This is the main web interface for the Mount Rainier Weather Prediction Tool.
 It provides climbers with an easy-to-use dashboard to check weather forecasts
 and safety assessments for climbing Mount Rainier.
 
-Author: Weather Prediction Team
-Purpose: Web interface for weather forecasting and safety assessment
 """
 
 import streamlit as st
