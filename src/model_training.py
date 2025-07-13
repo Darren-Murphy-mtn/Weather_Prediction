@@ -364,7 +364,7 @@ class WeatherModelTrainer:
             output_dir: Directory to save models (default: data/models)
         """
         if output_dir is None:
-            output_dir = MODEL_FILES['base_dir']
+            output_dir = MODELS_DIR
         
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -381,7 +381,7 @@ class WeatherModelTrainer:
         Load trained models from disk
         """
         if model_dir is None:
-            model_dir = MODEL_FILES['base_dir']
+            model_dir = MODELS_DIR
         
         model_dir = Path(model_dir)
         
