@@ -55,7 +55,7 @@ class ModelImprover:
         
     def load_existing_models(self):
         """Load existing trained models"""
-        print("🤖 Loading existing models...")
+        print("Loading existing models...")
         
         for target_var in TARGET_VARIABLES:
             model_path = MODELS_DIR / f"{target_var.replace('_', '_')}_model.pkl"
@@ -64,47 +64,47 @@ class ModelImprover:
                 try:
                     with open(model_path, 'rb') as f:
                         self.models[target_var] = pickle.load(f)
-                    print(f"   ✅ Loaded {target_var} model")
+                    print(f"   Loaded {target_var} model")
                 except Exception as e:
-                    print(f"   ❌ Error loading {target_var} model: {e}")
+                    print(f"   Error loading {target_var} model: {e}")
         
         return len(self.models) > 0
     
     def load_test_data(self):
         """Load the processed test data"""
-        print("📊 Loading test data...")
+        print("Loading test data...")
         
         test_file = PROCESSED_DATA_DIR / "cleaned_manual_test_data.csv"
         
         if not test_file.exists():
-            print(f"❌ Test data file not found: {test_file}")
+            print(f"Test data file not found: {test_file}")
             print("Please run process_manual_test_data.py first")
             return None
         
         try:
             df = pd.read_csv(test_file, index_col=0, parse_dates=True)
-            print(f"   ✅ Loaded test data: {df.shape}")
+            print(f"   Loaded test data: {df.shape}")
             return df
         except Exception as e:
-            print(f"   ❌ Error loading test data: {e}")
+            print(f"   Error loading test data: {e}")
             return None
     
     def prepare_features(self, df):
         """Prepare features using the same engineering as training"""
-        print("🔧 Creating features for test data...")
+        print("Creating features for test data...")
         
         try:
             feature_engineer = FeatureEngineer()
             df_features = feature_engineer.engineer_all_features(df)
-            print(f"   ✅ Created {len(df_features.columns)} features")
+            print(f"   Created {len(df_features.columns)} features")
             return df_features
         except Exception as e:
-            print(f"   ❌ Error in feature engineering: {e}")
+            print(f"   Error in feature engineering: {e}")
             return None
     
     def evaluate_current_models(self, df_features):
         """Evaluate current model performance on test data"""
-        print("📈 Evaluating current model performance...")
+        print("Evaluating current model performance...")
         
         results = {}
         
@@ -154,13 +154,13 @@ class ModelImprover:
                 print(f"   {target_var}: MAE={mae:.3f}, RMSE={rmse:.3f}, R²={r2:.3f}, MAPE={mape:.1f}%")
                 
             except Exception as e:
-                print(f"   ❌ Error evaluating {target_var}: {e}")
+                print(f"   Error evaluating {target_var}: {e}")
         
         return results
     
     def create_ensemble_models(self, df_features):
         """Create ensemble models using multiple algorithms"""
-        print("🎯 Creating ensemble models...")
+        print("Creating ensemble models...")
         
         for target_var in TARGET_VARIABLES:
             if target_var not in df_features.columns:
@@ -203,13 +203,13 @@ class ModelImprover:
             try:
                 ensemble.fit(X, y)
                 self.ensemble_models[target_var] = ensemble
-                print(f"      ✅ Ensemble created with {len(base_models)} models")
+                print(f"      Ensemble created with {len(base_models)} models")
             except Exception as e:
-                print(f"      ❌ Error creating ensemble: {e}")
+                print(f"      Error creating ensemble: {e}")
     
     def optimize_hyperparameters(self, df_features):
         """Optimize hyperparameters using Optuna"""
-        print("🔧 Optimizing hyperparameters...")
+        print("Optimizing hyperparameters...")
         
         for target_var in TARGET_VARIABLES:
             if target_var not in df_features.columns:
@@ -269,15 +269,15 @@ class ModelImprover:
                 study.optimize(objective, n_trials=50, timeout=300)  # 5 minutes timeout
                 
                 self.best_params[target_var] = study.best_params
-                print(f"      ✅ Best MAE: {study.best_value:.3f}")
-                print(f"      📋 Best params: {study.best_params}")
+                print(f"      Best MAE: {study.best_value:.3f}")
+                print(f"      Best params: {study.best_params}")
                 
             except Exception as e:
-                print(f"      ❌ Error in optimization: {e}")
+                print(f"      Error in optimization: {e}")
     
     def feature_selection(self, df_features):
         """Perform feature selection to improve model performance"""
-        print("🎯 Performing feature selection...")
+        print("Performing feature selection...")
         
         for target_var in TARGET_VARIABLES:
             if target_var not in df_features.columns:
@@ -314,15 +314,15 @@ class ModelImprover:
                     'features': selected_features
                 }
                 
-                print(f"      ✅ Selected {len(selected_features)} features")
-                print(f"      📋 Top 10 features: {selected_features[:10]}")
+                print(f"      Selected {len(selected_features)} features")
+                print(f"      Top 10 features: {selected_features[:10]}")
                 
             except Exception as e:
-                print(f"      ❌ Error in feature selection: {e}")
+                print(f"      Error in feature selection: {e}")
     
     def train_improved_models(self, df_features):
         """Train improved models with optimized parameters and feature selection"""
-        print("🚀 Training improved models...")
+        print("Training improved models...")
         
         improved_models = {}
         
@@ -372,22 +372,22 @@ class ModelImprover:
             try:
                 model.fit(X, y)
                 improved_models[target_var] = model
-                print(f"      ✅ Improved model trained")
+                print(f"      Improved model trained")
                 
                 # Save improved model
                 model_path = MODELS_DIR / f"{target_var}_improved_model.pkl"
                 with open(model_path, 'wb') as f:
                     pickle.dump(model, f)
-                print(f"      💾 Saved to {model_path}")
+                print(f"      Saved to {model_path}")
                 
             except Exception as e:
-                print(f"      ❌ Error training improved model: {e}")
+                print(f"      Error training improved model: {e}")
         
         return improved_models
     
     def evaluate_improvements(self, df_features, original_results, improved_models):
         """Evaluate improvements in model performance"""
-        print("📊 Evaluating improvements...")
+        print("Evaluating improvements...")
         
         improvement_results = {}
         
@@ -455,13 +455,13 @@ class ModelImprover:
                     print(f"   {target_var}: MAE={mae:.3f}, R²={r2:.3f}")
                 
             except Exception as e:
-                print(f"   ❌ Error evaluating improved {target_var}: {e}")
+                print(f"   Error evaluating improved {target_var}: {e}")
         
         return improvement_results
     
     def save_improvement_report(self, original_results, improvement_results):
         """Save a comprehensive improvement report"""
-        print("📋 Saving improvement report...")
+        print("Saving improvement report...")
         
         report_data = []
         
@@ -492,17 +492,17 @@ class ModelImprover:
             report_df = pd.DataFrame(report_data)
             report_path = PROCESSED_DATA_DIR / "model_improvement_report.csv"
             report_df.to_csv(report_path, index=False)
-            print(f"   ✅ Report saved to {report_path}")
+            print(f"   Report saved to {report_path}")
             
             # Print summary
-            print(f"\n📊 Improvement Summary:")
+            print(f"\nImprovement Summary:")
             print(report_df.round(3))
         else:
-            print("   ⚠️ No improvement data to save")
+            print("   No improvement data to save")
 
 def main():
     """Main function to improve models"""
-    print("🚀 Mount Rainier Model Improvement System")
+    print("Mount Rainier Model Improvement System")
     print("=" * 60)
     
     # Initialize improver
@@ -510,7 +510,7 @@ def main():
     
     # Load existing models
     if not improver.load_existing_models():
-        print("❌ No existing models found!")
+        print("No existing models found!")
         return
     
     # Load test data
@@ -551,9 +551,9 @@ def main():
     print("\n" + "="*60)
     improver.save_improvement_report(original_results, improvement_results)
     
-    print(f"\n🎉 Model improvement completed!")
-    print(f"📁 Improved models saved to data/models/")
-    print(f"📊 Improvement report saved to data/processed/")
+    print(f"\nModel improvement completed!")
+    print(f"Improved models saved to data/models/")
+    print(f"Improvement report saved to data/processed/")
 
 if __name__ == "__main__":
     main() 

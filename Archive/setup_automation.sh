@@ -1,14 +1,14 @@
 #!/bin/bash
 # Setup script for automated daily data updates
 
-echo "🚀 Setting up automated daily data updates for Mount Rainier Weather Prediction"
+echo "Setting up automated daily data updates for Mount Rainier Weather Prediction"
 
 # Get the project directory
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "📁 Project directory: $PROJECT_DIR"
+echo "Project directory: $PROJECT_DIR"
 
 # Install required packages
-echo "📦 Installing required packages..."
+echo "Installing required packages..."
 pip install schedule
 
 # Create logs directory
@@ -17,7 +17,7 @@ mkdir -p logs
 # Detect operating system
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS - Create LaunchAgent
-    echo "🍎 Setting up LaunchAgent for macOS..."
+    echo "Setting up LaunchAgent for macOS..."
     
     LAUNCH_AGENT_DIR="$HOME/Library/LaunchAgents"
     mkdir -p "$LAUNCH_AGENT_DIR"
@@ -54,13 +54,13 @@ EOF
 
     # Load the LaunchAgent
     launchctl load "$LAUNCH_AGENT_DIR/com.mountrainier.weatherupdate.plist"
-    echo "✅ LaunchAgent installed and loaded"
-    echo "📅 Daily updates scheduled for 6:00 AM"
-    echo "📝 Logs will be written to logs/launchagent.log"
+    echo "LaunchAgent installed and loaded"
+    echo "Daily updates scheduled for 6:00 AM"
+    echo "Logs will be written to logs/launchagent.log"
 
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux - Create systemd service
-    echo "🐧 Setting up systemd service for Linux..."
+    echo "Setting up systemd service for Linux..."
     
     # Check if running as root
     if [[ $EUID -eq 0 ]]; then
@@ -112,27 +112,27 @@ EOF
         systemctl --user start mountrainier-weather.timer
     fi
     
-    echo "✅ Systemd service installed and enabled"
-    echo "📅 Daily updates scheduled for 6:00 AM"
-    echo "📝 Logs will be written to logs/systemd.log"
+    echo "Systemd service installed and enabled"
+    echo "Daily updates scheduled for 6:00 AM"
+    echo "Logs will be written to logs/systemd.log"
 
 else
-    echo "⚠️  Unsupported operating system: $OSTYPE"
-    echo "📋 Manual setup required:"
+    echo "Unsupported operating system: $OSTYPE"
+    echo "Manual setup required:"
     echo "   1. Run 'python daily_data_update.py' to test"
     echo "   2. Set up cron job or task scheduler"
     echo "   3. Schedule to run daily at 6:00 AM"
 fi
 
 echo ""
-echo "🎉 Setup complete!"
+echo "Setup complete!"
 echo ""
-echo "📋 Next steps:"
+echo "Next steps:"
 echo "   1. Test the update: python daily_data_update.py --once"
 echo "   2. Check logs in logs/ directory"
 echo "   3. Monitor the first few automated runs"
 echo ""
-echo "🔧 Manual control:"
+echo "Manual control:"
 echo "   - Test once: python daily_data_update.py --once"
 echo "   - Run scheduler: python daily_data_update.py"
 echo "   - Check status: tail -f logs/daily_update.log" 

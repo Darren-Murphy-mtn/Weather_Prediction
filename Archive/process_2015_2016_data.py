@@ -34,7 +34,7 @@ def load_and_merge_era5_data(year):
     Returns:
         DataFrame with merged weather data
     """
-    print(f"📊 Loading ERA5 data for {year}...")
+    print(f"Loading ERA5 data for {year}...")
     
     # File paths
     weather_file = RAW_DATA_DIR / f"ERA5_{year}_weather_apr_jul.nc"
@@ -42,10 +42,10 @@ def load_and_merge_era5_data(year):
     
     # Check if files exist
     if not weather_file.exists():
-        print(f"❌ Weather file not found: {weather_file}")
+        print(f"Weather file not found: {weather_file}")
         return None
     if not precip_file.exists():
-        print(f"❌ Precipitation file not found: {precip_file}")
+        print(f"Precipitation file not found: {precip_file}")
         return None
     
     # Load weather data (temperature, wind, pressure)
@@ -68,7 +68,7 @@ def load_and_merge_era5_data(year):
         how="inner"
     )
     
-    print(f"   ✅ Merged data shape: {df_merged.shape}")
+    print(f"   Merged data shape: {df_merged.shape}")
     return df_merged
 
 def convert_units(df):
@@ -81,31 +81,31 @@ def convert_units(df):
     Returns:
         DataFrame with converted units
     """
-    print("🔄 Converting units...")
+    print("Converting units...")
     
     df_converted = df.copy()
     
     # Temperature: Kelvin to Fahrenheit
     if 't2m' in df_converted.columns:
         df_converted['temperature_F'] = (df_converted['t2m'] - 273.15) * 9/5 + 32
-        print(f"   ✅ Temperature converted to Fahrenheit")
+        print(f"   Temperature converted to Fahrenheit")
     
     # Wind speed: Calculate from u and v components, convert m/s to mph
     if 'u10' in df_converted.columns and 'v10' in df_converted.columns:
         df_converted['wind_speed_mph'] = np.sqrt(
             df_converted['u10']**2 + df_converted['v10']**2
         ) * 2.23694  # m/s to mph
-        print(f"   ✅ Wind speed calculated and converted to mph")
+        print(f"   Wind speed calculated and converted to mph")
     
     # Air pressure: Pa to hPa (already in hPa for mean_sea_level_pressure)
     if 'msl' in df_converted.columns:
         df_converted['air_pressure_hPa'] = df_converted['msl'] / 100  # Pa to hPa
-        print(f"   ✅ Air pressure converted to hPa")
+        print(f"   Air pressure converted to hPa")
     
     # Precipitation: Convert to mm and spread 3-hourly to hourly
     if 'tp' in df_converted.columns:
         df_converted['precip_mm'] = df_converted['tp'] * 1000  # m to mm
-        print(f"   ✅ Precipitation converted to mm")
+        print(f"   Precipitation converted to mm")
     
     return df_converted
 
@@ -119,7 +119,7 @@ def spread_precipitation_to_hourly(df):
     Returns:
         DataFrame with hourly precipitation
     """
-    print("🌧️ Spreading 3-hourly precipitation to hourly...")
+    print("Spreading 3-hourly precipitation to hourly...")
     
     df_hourly = df.copy()
     
@@ -161,7 +161,7 @@ def clean_and_validate_data(df):
     Returns:
         Cleaned DataFrame
     """
-    print("🧹 Cleaning and validating data...")
+    print("Cleaning and validating data...")
     
     df_clean = df.copy()
     
@@ -170,7 +170,7 @@ def clean_and_validate_data(df):
     missing_cols = [col for col in critical_cols if col not in df_clean.columns]
     
     if missing_cols:
-        print(f"   ⚠️ Missing columns: {missing_cols}")
+        print(f"   Missing columns: {missing_cols}")
         return None
     
     # Remove rows with NaN values in critical columns
@@ -215,12 +215,12 @@ def clean_and_validate_data(df):
     columns_to_keep = ['temperature_F', 'wind_speed_mph', 'air_pressure_hPa', 'precip_hourly']
     df_clean = df_clean[columns_to_keep]
     
-    print(f"   ✅ Cleaned data shape: {df_clean.shape}")
+    print(f"   Cleaned data shape: {df_clean.shape}")
     return df_clean
 
 def main():
     """Main function to process 2015-2016 data"""
-    print("🚀 Mount Rainier ERA5 Data Processing - 2015-2016")
+    print("Mount Rainier ERA5 Data Processing - 2015-2016")
     print("=" * 60)
     
     # Ensure directories exist
@@ -236,7 +236,7 @@ def main():
         # Load and merge data
         df_merged = load_and_merge_era5_data(year)
         if df_merged is None:
-            print(f"❌ Failed to load data for {year}")
+            print(f"Failed to load data for {year}")
             continue
         
         # Convert units
@@ -248,42 +248,42 @@ def main():
         # Clean and validate
         df_clean = clean_and_validate_data(df_hourly)
         if df_clean is None:
-            print(f"❌ Failed to clean data for {year}")
+            print(f"Failed to clean data for {year}")
             continue
         
         # Add year identifier
         df_clean['year'] = year
         
         all_data.append(df_clean)
-        print(f"✅ Successfully processed {year} data: {df_clean.shape}")
+        print(f"Successfully processed {year} data: {df_clean.shape}")
     
     if not all_data:
-        print("❌ No data was successfully processed!")
+        print("No data was successfully processed!")
         return
     
     # Combine all years
-    print(f"\n🔄 Combining data from all years...")
+    print(f"\nCombining data from all years...")
     combined_data = pd.concat(all_data, axis=0)
     combined_data = combined_data.sort_index()
     
-    print(f"✅ Combined data shape: {combined_data.shape}")
-    print(f"📅 Date range: {combined_data.index.min()} to {combined_data.index.max()}")
+    print(f"Combined data shape: {combined_data.shape}")
+    print(f"Date range: {combined_data.index.min()} to {combined_data.index.max()}")
     
     # Save processed data
     output_file = PROCESSED_DATA_DIR / "cleaned_weather_2015_2016_apr_jul.csv"
     combined_data.to_csv(output_file)
-    print(f"💾 Saved processed data to: {output_file}")
+    print(f"Saved processed data to: {output_file}")
     
     # Print summary statistics
-    print(f"\n📊 Data Summary:")
+    print(f"\nData Summary:")
     print(f"   Total records: {len(combined_data)}")
     print(f"   Years: {combined_data['year'].unique()}")
     print(f"   Date range: {combined_data.index.min()} to {combined_data.index.max()}")
     
-    print(f"\n📈 Descriptive Statistics:")
+    print(f"\nDescriptive Statistics:")
     print(combined_data.describe())
     
-    print(f"\n🎉 Data processing completed successfully!")
+    print(f"\nData processing completed successfully!")
 
 if __name__ == "__main__":
     main() 

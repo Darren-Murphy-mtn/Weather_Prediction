@@ -73,7 +73,7 @@ def test_basic_functionality():
     except Exception as e:
         print(f"❌ Basic functionality test failed: {e}")
         return False
-
+    
 def test_risk_assessment():
     """Test risk assessment with sample data"""
     print("\nTesting risk assessment...")
