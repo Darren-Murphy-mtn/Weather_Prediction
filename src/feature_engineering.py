@@ -1,12 +1,5 @@
 """
 Feature engineering module for Mount Rainier Weather Prediction Tool
-
-This module creates new weather features that help our machine learning models
-make better predictions. Think of it as "cooking" the raw weather data into
-more useful ingredients that the computer can understand better.
-
-Author: Weather Prediction Team
-Purpose: Create derived weather features and prepare data for machine learning
 """
 
 import pandas as pd
@@ -16,7 +9,8 @@ from pathlib import Path
 import sys
 
 # Add src to path for imports
-sys.path.append(str(Path(__file__).parent))
+if str(Path(__file__).parent.parent) not in sys.path:
+    sys.path.append(str(Path(__file__).parent.parent))
 
 from config.config import *
 from utils import (
@@ -28,62 +22,35 @@ from utils import (
 class FeatureEngineer:
     """
     Creates advanced weather features for machine learning models
-    
-    This class takes raw weather data and creates new features that help
-    predict future weather conditions. It's like a "weather chef" that
-    combines basic ingredients into more sophisticated recipes.
-    
-    Features created include:
-    - Time-based features (hour of day, day of week, season)
-    - Weather trends (how conditions are changing)
-    - Derived weather variables (wind chill, pressure changes)
-    - Lag features (what happened 1, 2, 3 hours ago)
-    - Interaction features (combinations of weather variables)
     """
     
     def __init__(self):
         """
         Initialize the feature engineering system
-        
-        This sets up the system to create various types of weather features
-        that will help our machine learning models make better predictions.
         """
-        self.feature_columns = []  # Will track all the features we create
-        print("🔧 Feature engineering system initialized")
+        self.feature_columns = []
+        print("Feature engineering system initialized")
     
     def create_time_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create time-based features from the weather data timestamps
-        
-        Weather patterns often follow daily, weekly, and seasonal cycles.
-        These features help the model understand these natural rhythms.
         
         Args:
             df: DataFrame with weather data and datetime index
             
         Returns:
             DataFrame with new time-based features added
-            
-        Example:
-            create_time_features(df) adds columns like:
-            - hour_of_day: 0-23 (what hour of the day)
-            - day_of_week: 0-6 (Monday=0, Sunday=6)
-            - month: 1-12 (January=1, December=12)
-            - season: 'winter', 'spring', 'summer', 'fall'
         """
-        print("⏰ Creating time-based weather features...")
+        print("Creating time-based weather features...")
         
         df_features = df.copy()
         
-        # Extract different time components from the timestamp
         df_features['hour_of_day'] = df_features.index.hour
         df_features['day_of_week'] = df_features.index.dayofweek
         df_features['day_of_month'] = df_features.index.day
         df_features['month'] = df_features.index.month
         df_features['year'] = df_features.index.year
         
-        # Create cyclical features for time (helps model understand time cycles)
-        # These convert linear time into circular patterns
         df_features['hour_sin'] = np.sin(2 * np.pi * df_features['hour_of_day'] / 24)
         df_features['hour_cos'] = np.cos(2 * np.pi * df_features['hour_of_day'] / 24)
         df_features['day_sin'] = np.sin(2 * np.pi * df_features['day_of_week'] / 7)
@@ -91,7 +58,6 @@ class FeatureEngineer:
         df_features['month_sin'] = np.sin(2 * np.pi * df_features['month'] / 12)
         df_features['month_cos'] = np.cos(2 * np.pi * df_features['month'] / 12)
         
-        # Create season feature (helps model understand seasonal patterns)
         def get_season(month):
             """Convert month number to season name"""
             if month in [12, 1, 2]:
@@ -105,29 +71,24 @@ class FeatureEngineer:
         
         df_features['season'] = df_features['month'].apply(get_season)
         
-        # Convert season to numbers (machine learning models prefer numbers)
         season_mapping = {'winter': 0, 'spring': 1, 'summer': 2, 'fall': 3}
         df_features['season_num'] = df_features['season'].map(season_mapping)
         
-        # Create is_weekend feature (weather patterns might differ on weekends)
         df_features['is_weekend'] = (df_features['day_of_week'] >= 5).astype(int)
         
-        # Create is_daylight feature (rough estimate of daylight hours)
-        # This is a simple approximation - in summer, more daylight hours
         def is_daylight(hour, month):
             """Estimate if it's daylight based on hour and month"""
-            if month in [6, 7, 8]:  # Summer
+            if month in [6, 7, 8]:
                 return 1 if 5 <= hour <= 21 else 0
-            elif month in [12, 1, 2]:  # Winter
+            elif month in [12, 1, 2]:
                 return 1 if 7 <= hour <= 17 else 0
-            else:  # Spring/Fall
+            else:
                 return 1 if 6 <= hour <= 19 else 0
         
         df_features['is_daylight'] = df_features.apply(
             lambda row: is_daylight(row['hour_of_day'], row['month']), axis=1
         )
         
-        # Track the new features we created
         time_features = [
             'hour_of_day', 'day_of_week', 'day_of_month', 'month', 'year',
             'hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'month_sin', 'month_cos',
@@ -135,125 +96,105 @@ class FeatureEngineer:
         ]
         self.feature_columns.extend(time_features)
         
-        print(f"✅ Created {len(time_features)} time-based features")
+        print(f"Created {len(time_features)} time-based features")
         return df_features
     
     def create_weather_derived_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create derived weather features from basic weather measurements
         
-        These features combine basic weather data to create more useful
-        indicators that help predict future conditions.
-        
         Args:
-            df: DataFrame with basic weather data (temperature, wind, pressure, precipitation)
+            df: DataFrame with basic weather data
             
         Returns:
             DataFrame with new derived weather features
-            
-        Example:
-            create_weather_derived_features(df) adds columns like:
-            - wind_chill: How cold it feels with wind
-            - pressure_trend: How pressure is changing
-            - weather_severity: Overall weather intensity score
         """
-        print("🌪️ Creating derived weather features...")
+        print("Creating derived weather features...")
         
         df_features = df.copy()
         
-        # Calculate wind chill (how cold it feels when wind blows)
-        # This is important for climber safety
+        temp_col = 'temperature_F' if 'temperature_F' in df_features.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df_features.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df_features.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df_features.columns else 'precipitation'
+        
         df_features['wind_chill'] = df_features.apply(
-            lambda row: calculate_wind_chill(row['temperature'], row['wind_speed']), 
+            lambda row: calculate_wind_chill(row[temp_col], row[wind_col]), 
             axis=1
         )
         
-        # Calculate pressure trends (how air pressure is changing)
-        # Falling pressure often indicates storms approaching
         df_features['pressure_trend_6h'] = calculate_pressure_tendency(
-            df_features['pressure'], hours=6
+            df_features[pressure_col], hours=6
         )
         df_features['pressure_trend_12h'] = calculate_pressure_tendency(
-            df_features['pressure'], hours=12
+            df_features[pressure_col], hours=12
         )
         
-        # Calculate temperature trends (how temperature is changing)
-        df_features['temp_trend_6h'] = df_features['temperature'].diff(6)
-        df_features['temp_trend_12h'] = df_features['temperature'].diff(12)
+        df_features['temp_trend_6h'] = df_features[temp_col].diff(6)
+        df_features['temp_trend_12h'] = df_features[temp_col].diff(12)
         
-        # Calculate wind speed trends (how wind is changing)
-        df_features['wind_trend_6h'] = df_features['wind_speed'].diff(6)
-        df_features['wind_trend_12h'] = df_features['wind_speed'].diff(12)
+        df_features['wind_trend_6h'] = df_features[wind_col].diff(6)
+        df_features['wind_trend_12h'] = df_features[wind_col].diff(12)
         
-        # Create weather severity index (overall weather intensity)
-        # This combines multiple weather factors into one score
         def calculate_weather_severity(row):
             """Calculate overall weather severity score (0-10)"""
             severity = 0
             
-            # Temperature severity (very cold or very hot is more severe)
-            temp_deviation = abs(row['temperature'] - 50)  # 50°F is "normal"
-            severity += min(temp_deviation / 20, 3)  # Max 3 points for temperature
+            temp_deviation = abs(row[temp_col] - 50)
+            severity += min(temp_deviation / 20, 3)
             
-            # Wind severity (higher winds are more severe)
-            severity += min(row['wind_speed'] / 10, 3)  # Max 3 points for wind
+            severity += min(row[wind_col] / 10, 3)
             
-            # Precipitation severity (more rain/snow is more severe)
-            severity += min(row['precipitation'] * 10, 2)  # Max 2 points for precipitation
+            severity += min(row[precip_col] * 10, 2)
             
-            # Pressure severity (rapid pressure changes are more severe)
             pressure_change = abs(row.get('pressure_trend_6h', 0))
-            severity += min(pressure_change * 10, 2)  # Max 2 points for pressure changes
+            severity += min(pressure_change * 10, 2)
             
-            return min(severity, 10)  # Cap at 10
+            return min(severity, 10)
         
         df_features['weather_severity'] = df_features.apply(calculate_weather_severity, axis=1)
         
-        # Create temperature categories (helps model understand temperature ranges)
         def categorize_temperature(temp):
             """Categorize temperature into ranges"""
             if temp < 20:
-                return 0  # Very cold
+                return 0
             elif temp < 35:
-                return 1  # Cold
+                return 1
             elif temp < 50:
-                return 2  # Cool
+                return 2
             elif temp < 65:
-                return 3  # Mild
+                return 3
             else:
-                return 4  # Warm
+                return 4
         
-        df_features['temp_category'] = df_features['temperature'].apply(categorize_temperature)
+        df_features['temp_category'] = df_features[temp_col].apply(categorize_temperature)
         
-        # Create wind speed categories (helps model understand wind intensity)
         def categorize_wind_speed(wind):
             """Categorize wind speed into ranges"""
             if wind < 10:
-                return 0  # Light
+                return 0
             elif wind < 20:
-                return 1  # Moderate
+                return 1
             elif wind < 30:
-                return 2  # Strong
+                return 2
             else:
-                return 3  # Very strong
+                return 3
         
-        df_features['wind_category'] = df_features['wind_speed'].apply(categorize_wind_speed)
+        df_features['wind_category'] = df_features[wind_col].apply(categorize_wind_speed)
         
-        # Create pressure categories (helps model understand pressure patterns)
         def categorize_pressure(pressure):
             """Categorize pressure into ranges"""
-            if pressure < 20:
-                return 0  # Very low
-            elif pressure < 21:
-                return 1  # Low
-            elif pressure < 22:
-                return 2  # Normal
+            if pressure < 600:
+                return 0
+            elif pressure < 800:
+                return 1
+            elif pressure < 1000:
+                return 2
             else:
-                return 3  # High
+                return 3
         
-        df_features['pressure_category'] = df_features['pressure'].apply(categorize_pressure)
+        df_features['pressure_category'] = df_features[pressure_col].apply(categorize_pressure)
         
-        # Track the new features we created
         derived_features = [
             'wind_chill', 'pressure_trend_6h', 'pressure_trend_12h',
             'temp_trend_6h', 'temp_trend_12h', 'wind_trend_6h', 'wind_trend_12h',
@@ -261,37 +202,30 @@ class FeatureEngineer:
         ]
         self.feature_columns.extend(derived_features)
         
-        print(f"✅ Created {len(derived_features)} derived weather features")
+        print(f"Created {len(derived_features)} derived weather features")
         return df_features
     
     def create_lag_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Create lag features - past weather data to help predict future weather
         
-        Machine learning models work better when they can see patterns over time.
-        Lag features are like "memory" - they remember what happened 1, 2, 3 hours ago.
-        
         Args:
             df: DataFrame with weather data
             
         Returns:
             DataFrame with lag features added
-            
-        Example:
-            create_lag_features(df) adds columns like:
-            - temperature_lag_1h: Temperature 1 hour ago
-            - wind_speed_lag_2h: Wind speed 2 hours ago
-            - pressure_lag_3h: Pressure 3 hours ago
         """
-        print("⏪ Creating lag features (past weather data)...")
+        print("Creating lag features (past weather data)...")
         
-        # Define which weather variables to create lags for
-        lag_variables = ['temperature', 'wind_speed', 'pressure', 'precipitation']
+        temp_col = 'temperature_F' if 'temperature_F' in df.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df.columns else 'precipitation'
         
-        # Create lag features using the utility function
+        lag_variables = [temp_col, wind_col, pressure_col, precip_col]
+        
         df_lagged = create_lag_features(df, lag_variables, LAG_HOURS)
         
-        # Track the new lag features we created
         lag_features = []
         for var in lag_variables:
             for lag in LAG_HOURS:
@@ -299,7 +233,7 @@ class FeatureEngineer:
         
         self.feature_columns.extend(lag_features)
         
-        print(f"✅ Created {len(lag_features)} lag features")
+        print(f"Created {len(lag_features)} lag features")
         return df_lagged
     
     def create_interaction_features(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -321,34 +255,40 @@ class FeatureEngineer:
             - temp_pressure_interaction: Temperature × Pressure
             - wind_pressure_interaction: Wind speed × Pressure
         """
-        print("🔗 Creating interaction features...")
+        print("Creating interaction features...")
         
         df_features = df.copy()
         
+        # Map column names to match the cleaned data format
+        temp_col = 'temperature_F' if 'temperature_F' in df_features.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df_features.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df_features.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df_features.columns else 'precipitation'
+        
         # Temperature and wind interactions (wind chill effect)
-        df_features['temp_wind_interaction'] = df_features['temperature'] * df_features['wind_speed']
-        df_features['temp_wind_chill_diff'] = df_features['temperature'] - df_features['wind_chill']
+        df_features['temp_wind_interaction'] = df_features[temp_col] * df_features[wind_col]
+        df_features['temp_wind_chill_diff'] = df_features[temp_col] - df_features['wind_chill']
         
         # Temperature and pressure interactions (pressure affects temperature)
-        df_features['temp_pressure_interaction'] = df_features['temperature'] * df_features['pressure']
+        df_features['temp_pressure_interaction'] = df_features[temp_col] * df_features[pressure_col]
         
         # Wind and pressure interactions (pressure changes affect wind)
-        df_features['wind_pressure_interaction'] = df_features['wind_speed'] * df_features['pressure']
+        df_features['wind_pressure_interaction'] = df_features[wind_col] * df_features[pressure_col]
         
         # Precipitation interactions (how precipitation affects other conditions)
-        df_features['temp_precip_interaction'] = df_features['temperature'] * df_features['precipitation']
-        df_features['wind_precip_interaction'] = df_features['wind_speed'] * df_features['precipitation']
+        df_features['temp_precip_interaction'] = df_features[temp_col] * df_features[precip_col]
+        df_features['wind_precip_interaction'] = df_features[wind_col] * df_features[precip_col]
         
         # Weather severity interactions (how overall severity affects individual factors)
-        df_features['severity_temp_interaction'] = df_features['weather_severity'] * df_features['temperature']
-        df_features['severity_wind_interaction'] = df_features['weather_severity'] * df_features['wind_speed']
+        df_features['severity_temp_interaction'] = df_features['weather_severity'] * df_features[temp_col]
+        df_features['severity_wind_interaction'] = df_features['weather_severity'] * df_features[wind_col]
         
         # Time and weather interactions (how weather patterns change with time)
-        df_features['hour_temp_interaction'] = df_features['hour_of_day'] * df_features['temperature']
-        df_features['hour_wind_interaction'] = df_features['hour_of_day'] * df_features['wind_speed']
-        df_features['season_temp_interaction'] = df_features['season_num'] * df_features['temperature']
+        df_features['hour_temp_interaction'] = df_features['hour_of_day'] * df_features[temp_col]
+        df_features['hour_wind_interaction'] = df_features['hour_of_day'] * df_features[wind_col]
+        df_features['season_temp_interaction'] = df_features['season_num'] * df_features[temp_col]
         
-        # Track the new interaction features we created
+        # Track the new interaction features that were created
         interaction_features = [
             'temp_wind_interaction', 'temp_wind_chill_diff', 'temp_pressure_interaction',
             'wind_pressure_interaction', 'temp_precip_interaction', 'wind_precip_interaction',
@@ -357,7 +297,7 @@ class FeatureEngineer:
         ]
         self.feature_columns.extend(interaction_features)
         
-        print(f"✅ Created {len(interaction_features)} interaction features")
+        print(f"Created {len(interaction_features)} interaction features")
         return df_features
     
     def create_rolling_statistics(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -379,12 +319,18 @@ class FeatureEngineer:
             - wind_speed_6h_max: Maximum wind speed over last 6 hours
             - pressure_12h_std: Standard deviation of pressure over last 12 hours
         """
-        print("📊 Creating rolling statistics...")
+        print("Creating rolling statistics...")
         
         df_features = df.copy()
         
+        # Map column names to match the cleaned data format
+        temp_col = 'temperature_F' if 'temperature_F' in df_features.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df_features.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df_features.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df_features.columns else 'precipitation'
+        
         # Define the weather variables to create rolling stats for
-        weather_vars = ['temperature', 'wind_speed', 'pressure', 'precipitation']
+        weather_vars = [temp_col, wind_col, pressure_col, precip_col]
         
         # Define the time windows for rolling calculations
         windows = [3, 6, 12, 24]  # hours
@@ -415,7 +361,7 @@ class FeatureEngineer:
                     df_features[f'{var}_{window}h_avg'] = df_features[var].rolling(window=window, min_periods=1).mean()
                     df_features[f'{var}_{window}h_std'] = df_features[var].rolling(window=window, min_periods=1).std()
         
-        # Track the new rolling features we created
+        # Track the new rolling features that were created
         rolling_features = []
         for var in weather_vars + derived_vars:
             if var in df_features.columns:
@@ -433,7 +379,7 @@ class FeatureEngineer:
         
         self.feature_columns.extend(rolling_features)
         
-        print(f"✅ Created {len(rolling_features)} rolling statistics features")
+        print(f"Created {len(rolling_features)} rolling statistics features")
         return df_features
     
     def handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -456,20 +402,26 @@ class FeatureEngineer:
             - Interpolation for longer gaps
             - Rolling averages for persistent gaps
         """
-        print("🔧 Handling missing values in weather data...")
+        print("Handling missing values in weather data...")
         
         df_clean = df.copy()
         
         # Count missing values before cleaning
         missing_before = df_clean.isnull().sum().sum()
         if missing_before == 0:
-            print("✅ No missing values found")
+            print("No missing values found")
             return df_clean
         
         print(f"Found {missing_before} missing values to handle")
         
+        # Map column names to match the cleaned data format
+        temp_col = 'temperature_F' if 'temperature_F' in df_clean.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df_clean.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df_clean.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df_clean.columns else 'precipitation'
+        
         # Get the weather variables that might have missing values
-        weather_vars = ['temperature', 'wind_speed', 'pressure', 'precipitation']
+        weather_vars = [temp_col, wind_col, pressure_col, precip_col]
         
         for var in weather_vars:
             if var in df_clean.columns:
@@ -494,7 +446,7 @@ class FeatureEngineer:
         
         # Count missing values after cleaning
         missing_after = df_clean.isnull().sum().sum()
-        print(f"✅ Reduced missing values from {missing_before} to {missing_after}")
+        print(f"Reduced missing values from {missing_before} to {missing_after}")
         
         return df_clean
     
@@ -517,17 +469,23 @@ class FeatureEngineer:
             remove_outliers(df, 'iqr') removes values that are more than
             1.5 times the interquartile range from the median
         """
-        print("🎯 Removing extreme weather outliers...")
+        print("Removing extreme weather outliers...")
         
         df_clean = df.copy()
         
+        # Map column names to match the cleaned data format
+        temp_col = 'temperature_F' if 'temperature_F' in df_clean.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df_clean.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df_clean.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df_clean.columns else 'precipitation'
+        
         # Define reasonable ranges for weather variables
-        # These are based on typical Mount Rainier conditions
+        # These are based on typical Mount Rainier conditions and your current units
         weather_ranges = {
-            'temperature': (-50, 80),      # -50°F to 80°F
-            'wind_speed': (0, 100),        # 0 to 100 mph
-            'pressure': (15, 25),          # 15 to 25 inHg
-            'precipitation': (0, 50)       # 0 to 50 mm/hr
+            temp_col: (-50, 80),      # -50°F to 80°F
+            wind_col: (0, 100),       # 0 to 100 mph
+            pressure_col: (600, 1050), # 600 to 1050 hPa (high elevation)
+            precip_col: (0, 2)        # 0 to 2 inches/hr
         }
         
         outliers_removed = 0
@@ -545,9 +503,9 @@ class FeatureEngineer:
                     outliers_removed += outliers_before
         
         if outliers_removed > 0:
-            print(f"✅ Removed {outliers_removed} extreme outliers")
+            print(f"Removed {outliers_removed} extreme outliers")
         else:
-            print("✅ No extreme outliers found")
+            print("No extreme outliers found")
         
         return df_clean
     
@@ -574,56 +532,56 @@ class FeatureEngineer:
             - Rolling statistics
             - All cleaned and ready for modeling
         """
-        print("🚀 Starting complete feature engineering pipeline...")
-        print(f"📊 Input data shape: {df.shape}")
-        print(f"🔍 Input index type: {type(df.index)}")
-        print(f"🔍 Input index: {df.index[:3]}")
+        print("Starting complete feature engineering pipeline...")
+        print(f"Input data shape: {df.shape}")
+        print(f"Input index type: {type(df.index)}")
+        print(f"Input index: {df.index[:3]}")
 
-        # Ensure we have a DatetimeIndex - convert if needed
+        # Ensure there is a DatetimeIndex - convert if needed
         if not isinstance(df.index, pd.DatetimeIndex):
-            print(f"⚠️ Converting index to DatetimeIndex...")
+            print(f"Converting index to DatetimeIndex...")
             try:
                 df.index = pd.to_datetime(df.index)
-                print(f"✅ Successfully converted to DatetimeIndex")
+                print(f"Successfully converted to DatetimeIndex")
             except Exception as e:
-                print(f"❌ Failed to convert index: {e}")
+                print(f"Failed to convert index: {e}")
                 raise ValueError("Could not convert DataFrame index to DatetimeIndex!")
 
         # Save the original index (should be DatetimeIndex)
         original_index = df.index
 
         # Step 1: Handle missing values first
-        print("\n1️⃣ Handling missing values...")
+        print("\n1. Handling missing values...")
         df_clean = self.handle_missing_values(df)
         df_clean.index = original_index
 
         # Step 2: Remove extreme outliers
-        print("\n2️⃣ Removing extreme outliers...")
+        print("\n2. Removing extreme outliers...")
         df_clean = self.remove_outliers(df_clean)
         df_clean.index = original_index
 
         # Step 3: Create time-based features
-        print("\n3️⃣ Creating time-based features...")
+        print("\n3. Creating time-based features...")
         df_features = self.create_time_features(df_clean)
         df_features.index = original_index
 
         # Step 4: Create derived weather features
-        print("\n4️⃣ Creating derived weather features...")
+        print("\n4. Creating derived weather features...")
         df_features = self.create_weather_derived_features(df_features)
         df_features.index = original_index
 
         # Step 5: Create lag features
-        print("\n5️⃣ Creating lag features...")
+        print("\n5. Creating lag features...")
         df_features = self.create_lag_features(df_features)
         df_features.index = original_index
 
         # Step 6: Create interaction features
-        print("\n6️⃣ Creating interaction features...")
+        print("\n6. Creating interaction features...")
         df_features = self.create_interaction_features(df_features)
         df_features.index = original_index
 
         # Step 7: Create rolling statistics
-        print("\n7️⃣ Creating rolling statistics...")
+        print("\n7. Creating rolling statistics...")
         df_features = self.create_rolling_statistics(df_features)
         df_features.index = original_index
 
@@ -635,10 +593,10 @@ class FeatureEngineer:
             df_features.index = pd.to_datetime(df_features.index)
 
         # Print summary of feature engineering
-        print(f"\n🎉 Feature engineering completed!")
-        print(f"📊 Output data shape: {df_features.shape}")
-        print(f"🔧 Total features created: {len(self.feature_columns)}")
-        print(f"📈 Feature categories:")
+        print(f"\nFeature engineering completed!")
+        print(f"Output data shape: {df_features.shape}")
+        print(f"Total features created: {len(self.feature_columns)}")
+        print(f"Feature categories:")
         print(f"   - Time features: {len([f for f in self.feature_columns if 'hour' in f or 'day' in f or 'month' in f or 'season' in f])}")
         print(f"   - Derived features: {len([f for f in self.feature_columns if 'trend' in f or 'chill' in f or 'severity' in f or 'category' in f])}")
         print(f"   - Lag features: {len([f for f in self.feature_columns if 'lag' in f])}")
@@ -651,7 +609,7 @@ class FeatureEngineer:
         """
         Create a ranking of features by their potential importance
         
-        This helps us understand which features might be most useful
+        This helps understand which features might be most useful
         for predicting weather conditions.
         
         Args:
@@ -667,10 +625,16 @@ class FeatureEngineer:
             - Variance (how much the feature varies)
             - Importance score
         """
-        print("📈 Analyzing feature importance...")
+        print("Analyzing feature importance...")
         
-        # Define target variables (what we're trying to predict)
-        target_vars = ['temperature', 'wind_speed', 'pressure', 'precipitation']
+        # Map column names to match the cleaned data format
+        temp_col = 'temperature_F' if 'temperature_F' in df.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in df.columns else 'wind_speed'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in df.columns else 'pressure'
+        precip_col = 'precip_hourly' if 'precip_hourly' in df.columns else 'precipitation'
+        
+        # Define target variables (what is being predicted)
+        target_vars = [temp_col, wind_col, pressure_col, precip_col]
         
         # Calculate feature importance metrics
         feature_importance = []
@@ -704,7 +668,7 @@ class FeatureEngineer:
         importance_df = pd.DataFrame(feature_importance)
         importance_df = importance_df.sort_values('importance_score', ascending=False)
         
-        print(f"✅ Analyzed {len(importance_df)} features")
+        print(f"Analyzed {len(importance_df)} features")
         print("Top 10 most important features:")
         for i, row in importance_df.head(10).iterrows():
             print(f"  {row['feature']}: {row['importance_score']:.4f}")
@@ -722,10 +686,10 @@ def main():
     
     # Load the processed weather data
     try:
-        df = pd.read_csv(PROCESSED_DATA_PATH, index_col=0, parse_dates=True)
-        print(f"📊 Loaded weather data: {df.shape}")
+        df = pd.read_csv("data/processed/cleaned_weather_apr_jul_inch.csv", index_col=0, parse_dates=True)
+        print(f"Loaded weather data: {df.shape}")
     except FileNotFoundError:
-        print(f"❌ Processed data not found at {PROCESSED_DATA_PATH}")
+        print(f"Processed data not found at data/processed/cleaned_weather_apr_jul_inch.csv")
         print("Please run data_ingestion.py first to collect weather data")
         return
     
@@ -738,7 +702,7 @@ def main():
     # Save the engineered features
     output_path = PROCESSED_DATA_DIR / "engineered_features.csv"
     df_features.to_csv(output_path)
-    print(f"\n💾 Engineered features saved to {output_path}")
+    print(f"\nEngineered features saved to {output_path}")
     
     # Analyze feature importance
     importance_df = engineer.get_feature_importance_ranking(df_features)
@@ -746,10 +710,10 @@ def main():
     # Save feature importance ranking
     importance_path = PROCESSED_DATA_DIR / "feature_importance.csv"
     importance_df.to_csv(importance_path, index=False)
-    print(f"📈 Feature importance saved to {importance_path}")
+    print(f"Feature importance saved to {importance_path}")
     
-    print("\n🎉 Feature engineering pipeline completed successfully!")
-    print("✅ Ready for model training")
+    print("\nFeature engineering pipeline completed successfully!")
+    print("Ready for model training")
 
 if __name__ == "__main__":
     main() 

@@ -1,12 +1,8 @@
 """
 Risk assessment module for Mount Rainier Weather Prediction Tool
 
-This module evaluates the safety risks for climbing Mount Rainier based on
-predicted weather conditions. Think of it as a "safety advisor" that tells
-climbers when conditions are safe, risky, or dangerous.
+This module evaluates climbing safety risks based on predicted weather conditions for Mount Rainier.
 
-Author: Weather Prediction Team
-Purpose: Assess climbing safety based on weather predictions
 """
 
 import pandas as pd
@@ -46,579 +42,324 @@ class RiskAssessor:
         """
         Initialize the risk assessment system
         
-        This sets up the risk thresholds and safety guidelines
-        based on mountaineering best practices and weather safety standards.
+        Sets up the system to evaluate climbing safety based on weather conditions.
+        Defines risk factors and thresholds for different weather variables.
         """
-        self.risk_thresholds = RISK_THRESHOLDS
-        self.risk_levels = RISK_LEVELS
-        
-        # Define risk factors and their weights
-        # Higher weights mean more dangerous conditions
         self.risk_factors = {
-            'high_wind': {
-                'weight': 3.0,  # High winds are very dangerous
-                'description': 'Wind speeds above 35 mph can cause frostbite and disorientation'
-            },
-            'low_temp': {
-                'weight': 2.5,  # Low temperatures are dangerous
-                'description': 'Temperatures below 0°F increase risk of hypothermia'
-            },
-            'heavy_precip': {
-                'weight': 2.0,  # Heavy precipitation is risky
-                'description': 'Heavy rain/snow creates slippery conditions and poor visibility'
-            },
-            'rapid_changes': {
-                'weight': 1.5,  # Rapid changes are concerning
-                'description': 'Rapid weather changes indicate unstable conditions'
-            }
+            'high_winds': {'threshold': 35, 'weight': 3.0},  # mph
+            'low_temperature': {'threshold': 0, 'weight': 2.5},  # °F
+            'heavy_precipitation': {'threshold': 1.0, 'weight': 2.0},  # mm/hr
+            'rapid_changes': {'threshold': 0.5, 'weight': 1.5}  # rate of change
         }
-        
-        # Safety recommendations for each risk level
-        self.safety_recommendations = {
-            'low': [
-                "✅ Conditions are generally safe for experienced climbers",
-                "✅ Standard mountaineering equipment and procedures recommended",
-                "✅ Monitor weather conditions throughout your climb",
-                "✅ Have a backup plan in case conditions deteriorate"
-            ],
-            'moderate': [
-                "⚠️  Exercise increased caution",
-                "⚠️  Ensure all team members have proper cold weather gear",
-                "⚠️  Consider delaying climb if conditions worsen",
-                "⚠️  Have emergency communication devices ready",
-                "⚠️  Check weather updates frequently"
-            ],
-            'high': [
-                "🚨 DANGEROUS CONDITIONS - Avoid climbing",
-                "🚨 High risk of frostbite, hypothermia, and disorientation",
-                "🚨 Poor visibility and treacherous conditions likely",
-                "🚨 Emergency rescue may be difficult or impossible",
-                "🚨 Wait for improved weather conditions"
-            ]
-        }
-        
-        print("🛡️ Risk assessment system initialized")
-        print("🎯 Risk factors: High winds, low temperatures, heavy precipitation, rapid changes")
+        print("Risk assessment system initialized")
+        print("Risk factors: High winds, low temperatures, heavy precipitation, rapid changes")
     
-    def calculate_weather_risk_score(self, weather_data: pd.DataFrame) -> pd.DataFrame:
+    def calculate_risk_score(self, temperature, wind_speed, precipitation, pressure_trend=None):
         """
-        Calculate risk scores for each hour in the weather forecast
-        
-        This function analyzes the predicted weather conditions and assigns
-        a risk score from 0-10 for each hour, where:
-        - 0-1: Low risk (green)
-        - 2-3: Moderate risk (yellow)  
-        - 4-10: High risk (red)
-        
-        Args:
-            weather_data: DataFrame with weather predictions (temperature, wind_speed, precipitation)
-            
-        Returns:
-            DataFrame with risk scores and risk factors for each hour
-            
-        Example:
-            calculate_weather_risk_score(forecast_data) returns:
-            timestamp           risk_score  risk_level  high_wind  low_temp  heavy_precip  rapid_changes
-            2024-06-27 10:00    2.5         moderate    True       False     False         True
-            2024-06-27 11:00    4.2         high        True       True      False         False
+        Calculate a risk score (0-10) based on weather conditions
         """
-        print("🔍 Calculating weather risk scores...")
+        risk_score = 0.0
         
-        risk_data = weather_data.copy()
+        # High winds risk
+        if wind_speed > self.risk_factors['high_winds']['threshold']:
+            wind_risk = min((wind_speed - self.risk_factors['high_winds']['threshold']) / 10, 3.0)
+            risk_score += wind_risk * self.risk_factors['high_winds']['weight']
         
-        # Initialize risk columns
-        risk_data['risk_score'] = 0.0
-        risk_data['high_wind'] = False
-        risk_data['low_temp'] = False
-        risk_data['heavy_precip'] = False
-        risk_data['rapid_changes'] = False
+        # Low temperature risk
+        if temperature < self.risk_factors['low_temperature']['threshold']:
+            temp_risk = min(abs(temperature - self.risk_factors['low_temperature']['threshold']) / 10, 2.5)
+            risk_score += temp_risk * self.risk_factors['low_temperature']['weight']
         
-        # Check each risk factor
-        for i, (timestamp, row) in enumerate(risk_data.iterrows()):
-            risk_score = 0.0
-            risk_factors = {}
-            
-            # Factor 1: High winds
-            if row['wind_speed'] > self.risk_thresholds['wind_speed_high']:
-                risk_score += self.risk_factors['high_wind']['weight']
-                risk_factors['high_wind'] = True
-                risk_data.loc[timestamp, 'high_wind'] = True
-            
-            # Factor 2: Low temperatures
-            if row['temperature'] < self.risk_thresholds['temperature_low']:
-                risk_score += self.risk_factors['low_temp']['weight']
-                risk_factors['low_temp'] = True
-                risk_data.loc[timestamp, 'low_temp'] = True
-            
-            # Factor 3: Heavy precipitation
-            if row['precipitation'] > self.risk_thresholds['precipitation_heavy']:
-                risk_score += self.risk_factors['heavy_precip']['weight']
-                risk_factors['heavy_precip'] = True
-                risk_data.loc[timestamp, 'heavy_precip'] = True
-            
-            # Factor 4: Rapid weather changes (if we have enough data)
-            if i > 0:
-                temp_change = abs(row['temperature'] - risk_data.iloc[i-1]['temperature'])
-                wind_change = abs(row['wind_speed'] - risk_data.iloc[i-1]['wind_speed'])
-                precip_change = abs(row['precipitation'] - risk_data.iloc[i-1]['precipitation'])
-                
-                # Consider it rapid change if any variable changes significantly
-                if (temp_change > 10 or wind_change > 15 or precip_change > 2):
-                    risk_score += self.risk_factors['rapid_changes']['weight']
-                    risk_factors['rapid_changes'] = True
-                    risk_data.loc[timestamp, 'rapid_changes'] = True
-            
-            # Cap the risk score at 10
-            risk_score = min(risk_score, 10.0)
-            risk_data.loc[timestamp, 'risk_score'] = risk_score
+        # Heavy precipitation risk
+        if precipitation > self.risk_factors['heavy_precipitation']['threshold']:
+            precip_risk = min(precipitation / self.risk_factors['heavy_precipitation']['threshold'], 2.0)
+            risk_score += precip_risk * self.risk_factors['heavy_precipitation']['weight']
         
-        # Determine risk level for each hour
-        risk_data['risk_level'] = risk_data['risk_score'].apply(self.get_risk_level)
+        # Rapid changes risk (if pressure trend data available)
+        if pressure_trend is not None:
+            if abs(pressure_trend) > self.risk_factors['rapid_changes']['threshold']:
+                change_risk = min(abs(pressure_trend) / self.risk_factors['rapid_changes']['threshold'], 1.5)
+                risk_score += change_risk * self.risk_factors['rapid_changes']['weight']
         
-        # Add risk justification
-        risk_data['risk_justification'] = risk_data.apply(
-            lambda row: self.get_risk_justification(row), axis=1
-        )
-        
-        print(f"✅ Calculated risk scores for {len(risk_data)} hours")
-        print(f"📊 Risk distribution:")
-        print(f"   Low risk: {(risk_data['risk_level'] == 'low').sum()} hours")
-        print(f"   Moderate risk: {(risk_data['risk_level'] == 'moderate').sum()} hours")
-        print(f"   High risk: {(risk_data['risk_level'] == 'high').sum()} hours")
-        
-        return risk_data
+        # Cap the risk score at 10
+        return min(risk_score, 10.0)
     
-    def get_risk_level(self, risk_score: float) -> str:
+    def classify_risk_level(self, risk_score):
         """
-        Convert risk score to risk level category
-        Args:
-            risk_score: Risk score from 0-10
-        Returns:
-            Risk level: 'low', 'moderate', 'high', or 'extreme'
+        Classify risk score into categorical levels
         """
-        if risk_score < 3.0:
+        if risk_score <= 2.0:
             return 'low'
-        elif risk_score < 5.5:
+        elif risk_score <= 4.0:
             return 'moderate'
-        elif risk_score < 8.0:
+        elif risk_score <= 7.0:
             return 'high'
         else:
             return 'extreme'
     
-    def get_risk_justification(self, row: pd.Series) -> str:
+    def assess_weather_risk(self, weather_data):
         """
-        Create a human-readable explanation of why conditions are risky
-        
-        Args:
-            row: DataFrame row with risk factors and weather data
-            
-        Returns:
-            String explaining the risk factors
-            
-        Example:
-            get_risk_justification(row) returns:
-            "Risk due to high winds (45 mph) and low temperatures (-5°F)."
+        Assess risk for each hour in the weather forecast
         """
-        risk_factors = {}
+        print("Calculating weather risk scores...")
         
-        if row['high_wind']:
-            risk_factors['high_wind'] = f"high winds ({row['wind_speed']:.0f} mph)"
+        # Map column names to match the actual data format
+        temp_col = 'temperature_F' if 'temperature_F' in weather_data.columns else 'temperature'
+        wind_col = 'wind_speed_mph' if 'wind_speed_mph' in weather_data.columns else 'wind_speed'
+        precip_col = 'precip_hourly' if 'precip_hourly' in weather_data.columns else 'precipitation'
+        pressure_col = 'air_pressure_hPa' if 'air_pressure_hPa' in weather_data.columns else 'pressure'
         
-        if row['low_temp']:
-            risk_factors['low_temp'] = f"low temperatures ({row['temperature']:.0f}°F)"
-        
-        if row['heavy_precip']:
-            risk_factors['heavy_precip'] = f"heavy precipitation ({row['precipitation']:.1f} mm/hr)"
-        
-        if row['rapid_changes']:
-            risk_factors['rapid_changes'] = "rapid weather changes"
-        
-        if not risk_factors:
-            return "No significant risk factors identified."
-        
-        # Format the explanation
-        factors_list = list(risk_factors.values())
-        if len(factors_list) == 1:
-            return f"Risk due to {factors_list[0]}."
-        elif len(factors_list) == 2:
-            return f"Risk due to {factors_list[0]} and {factors_list[1]}."
-        else:
-            return f"Risk due to {', '.join(factors_list[:-1])}, and {factors_list[-1]}."
-    
-    def get_safety_recommendations(self, risk_level: str) -> list:
-        """
-        Get safety recommendations for a specific risk level
-        
-        Args:
-            risk_level: 'low', 'moderate', or 'high'
-            
-        Returns:
-            List of safety recommendations
-            
-        Example:
-            get_safety_recommendations('moderate') returns:
-            [
-                "⚠️  Exercise increased caution",
-                "⚠️  Ensure all team members have proper cold weather gear",
-                ...
-            ]
-        """
-        return self.safety_recommendations.get(risk_level, [
-            "❓ Risk level not recognized. Please exercise caution."
-        ])
-    
-    def analyze_forecast_period(self, risk_data: pd.DataFrame) -> dict:
-        """
-        Analyze the entire forecast period to provide overall safety assessment
-        
-        This function looks at the entire 72-hour forecast to give climbers
-        a comprehensive view of when conditions will be best for climbing.
-        
-        Args:
-            risk_data: DataFrame with risk scores for each hour
-            
-        Returns:
-            Dictionary with overall safety analysis
-            
-        Example:
-            analyze_forecast_period(risk_data) returns:
-            {
-                'overall_risk': 'moderate',
-                'best_climbing_window': '2024-06-28 08:00 to 2024-06-28 16:00',
-                'worst_conditions': '2024-06-27 14:00 to 2024-06-27 20:00',
-                'risk_summary': {...}
-            }
-        """
-        print("📊 Analyzing overall forecast safety...")
-        
-        # Calculate overall risk level
-        avg_risk = risk_data['risk_score'].mean()
-        overall_risk = self.get_risk_level(avg_risk)
-        
-        # Find the best climbing window (6-hour period with lowest average risk)
-        best_window = self.find_best_climbing_window(risk_data)
-        
-        # Find the worst conditions (6-hour period with highest average risk)
-        worst_window = self.find_worst_conditions(risk_data)
-        
-        # Create risk summary
-        risk_summary = {
-            'total_hours': len(risk_data),
-            'low_risk_hours': (risk_data['risk_level'] == 'low').sum(),
-            'moderate_risk_hours': (risk_data['risk_level'] == 'moderate').sum(),
-            'high_risk_hours': (risk_data['risk_level'] == 'high').sum(),
-            'average_risk_score': avg_risk,
-            'max_risk_score': risk_data['risk_score'].max(),
-            'min_risk_score': risk_data['risk_score'].min()
-        }
-        
-        # Calculate percentage of time in each risk level
-        total_hours = len(risk_data)
-        risk_summary['low_risk_percentage'] = (risk_summary['low_risk_hours'] / total_hours) * 100
-        risk_summary['moderate_risk_percentage'] = (risk_summary['moderate_risk_hours'] / total_hours) * 100
-        risk_summary['high_risk_percentage'] = (risk_summary['high_risk_hours'] / total_hours) * 100
-
-        # Calculate daily average risk for up to 3 days (assuming 72-hour forecast)
-        day1_avg_risk = risk_data.iloc[0:24]['risk_score'].mean() if len(risk_data) >= 24 else float('nan')
-        day2_avg_risk = risk_data.iloc[24:48]['risk_score'].mean() if len(risk_data) >= 48 else float('nan')
-        day3_avg_risk = risk_data.iloc[48:72]['risk_score'].mean() if len(risk_data) >= 72 else float('nan')
-
-        analysis = {
-            'overall_risk': overall_risk,
-            'best_climbing_window': best_window,
-            'worst_conditions': worst_window,
-            'risk_summary': risk_summary,
-            'safety_recommendations': self.get_safety_recommendations(overall_risk),
-            'day1_avg_risk': day1_avg_risk,
-            'day2_avg_risk': day2_avg_risk,
-            'day3_avg_risk': day3_avg_risk
-        }
-        
-        # Print analysis summary
-        print(f"📈 Overall Risk Level: {overall_risk.upper()}")
-        print(f"📅 Best Climbing Window: {best_window}")
-        print(f"⚠️  Worst Conditions: {worst_window}")
-        print(f"📊 Risk Distribution:")
-        print(f"   Low: {risk_summary['low_risk_percentage']:.1f}% of time")
-        print(f"   Moderate: {risk_summary['moderate_risk_percentage']:.1f}% of time")
-        print(f"   High: {risk_summary['high_risk_percentage']:.1f}% of time")
-        print(f"   Day 1 Avg Risk: {day1_avg_risk:.2f}")
-        print(f"   Day 2 Avg Risk: {day2_avg_risk:.2f}")
-        print(f"   Day 3 Avg Risk: {day3_avg_risk:.2f}")
-        
-        return analysis
-    
-    def find_best_climbing_window(self, risk_data: pd.DataFrame, window_hours: int = 6) -> str:
-        """
-        Find the best 6-hour window for climbing based on lowest risk
-        
-        Args:
-            risk_data: DataFrame with risk scores
-            window_hours: Number of hours in the climbing window
-            
-        Returns:
-            String describing the best climbing window
-            
-        Example:
-            find_best_climbing_window(risk_data) returns:
-            "2024-06-28 08:00 to 2024-06-28 14:00"
-        """
-        if len(risk_data) < window_hours:
-            return "Insufficient forecast data"
-        
-        # Calculate rolling average risk for each window
-        rolling_risk = risk_data['risk_score'].rolling(window=window_hours, min_periods=window_hours).mean()
-        
-        # Find the window with the lowest average risk
-        best_start_idx = rolling_risk.idxmin()
-        
-        if pd.isna(best_start_idx):
-            return "Unable to determine best window"
-        
-        best_start = best_start_idx
-        best_end = best_start + timedelta(hours=window_hours)
-        
-        return f"{best_start.strftime('%Y-%m-%d %H:%M')} to {best_end.strftime('%Y-%m-%d %H:%M')}"
-    
-    def find_worst_conditions(self, risk_data: pd.DataFrame, window_hours: int = 6) -> str:
-        """
-        Find the worst 6-hour window based on highest risk
-        
-        Args:
-            risk_data: DataFrame with risk scores
-            window_hours: Number of hours in the window
-            
-        Returns:
-            String describing the worst conditions window
-        """
-        if len(risk_data) < window_hours:
-            return "Insufficient forecast data"
-        
-        # Calculate rolling average risk for each window
-        rolling_risk = risk_data['risk_score'].rolling(window=window_hours, min_periods=window_hours).mean()
-        
-        # Find the window with the highest average risk
-        worst_start_idx = rolling_risk.idxmax()
-        
-        if pd.isna(worst_start_idx):
-            return "Unable to determine worst window"
-        
-        worst_start = worst_start_idx
-        worst_end = worst_start + timedelta(hours=window_hours)
-        
-        return f"{worst_start.strftime('%Y-%m-%d %H:%M')} to {worst_end.strftime('%Y-%m-%d %H:%M')}"
-    
-    def create_risk_alert(self, risk_data: pd.DataFrame) -> dict:
-        """
-        Create immediate risk alerts for the next 24 hours
-        
-        This function focuses on the critical first 24 hours of the forecast
-        to provide immediate safety guidance for climbers.
-        
-        Args:
-            risk_data: DataFrame with risk scores
-            
-        Returns:
-            Dictionary with immediate risk alerts
-            
-        Example:
-            create_risk_alert(risk_data) returns:
-            {
-                'immediate_risk': 'moderate',
-                'critical_hours': ['2024-06-27 14:00', '2024-06-27 15:00'],
-                'alert_message': 'High winds expected from 2-4 PM today',
-                'emergency_advice': 'Consider postponing climb if conditions worsen'
-            }
-        """
-        print("🚨 Creating immediate risk alerts...")
-        
-        # Focus on first 24 hours
-        first_24h = risk_data.head(24)
-        
-        if len(first_24h) == 0:
-            return {'error': 'No forecast data available'}
-        
-        # Find critical hours (high risk)
-        critical_hours = first_24h[first_24h['risk_level'] == 'high']
-        critical_times = critical_hours.index.tolist()
-        
-        # Determine immediate risk level
-        immediate_risk = self.get_risk_level(first_24h['risk_score'].mean())
-        
-        # Create alert message
-        alert_message = self.create_alert_message(first_24h)
-        
-        # Emergency advice
-        emergency_advice = self.get_emergency_advice(immediate_risk, critical_hours)
-        
-        alert = {
-            'immediate_risk': immediate_risk,
-            'critical_hours': [t.strftime('%Y-%m-%d %H:%M') for t in critical_times],
-            'alert_message': alert_message,
-            'emergency_advice': emergency_advice,
-            'next_24h_summary': {
-                'avg_risk': first_24h['risk_score'].mean(),
-                'max_risk': first_24h['risk_score'].max(),
-                'high_risk_hours': len(critical_hours)
-            }
-        }
-        
-        return alert
-    
-    def create_alert_message(self, first_24h: pd.DataFrame) -> str:
-        """
-        Create a human-readable alert message for the next 24 hours
-        
-        Args:
-            first_24h: First 24 hours of forecast data
-            
-        Returns:
-            Alert message string
-        """
-        # Find the most common risk factors
-        risk_factors = []
-        
-        if first_24h['high_wind'].sum() > 0:
-            max_wind = first_24h['wind_speed'].max()
-            risk_factors.append(f"high winds (up to {max_wind:.0f} mph)")
-        
-        if first_24h['low_temp'].sum() > 0:
-            min_temp = first_24h['temperature'].min()
-            risk_factors.append(f"low temperatures (down to {min_temp:.0f}°F)")
-        
-        if first_24h['heavy_precip'].sum() > 0:
-            max_precip = first_24h['precipitation'].max()
-            risk_factors.append(f"heavy precipitation (up to {max_precip:.1f} mm/hr)")
-        
-        if first_24h['rapid_changes'].sum() > 0:
-            risk_factors.append("rapid weather changes")
-        
-        if not risk_factors:
-            return "Conditions are generally safe for the next 24 hours."
-        
-        # Format the alert message
-        if len(risk_factors) == 1:
-            return f"Be aware of {risk_factors[0]} in the next 24 hours."
-        elif len(risk_factors) == 2:
-            return f"Be aware of {risk_factors[0]} and {risk_factors[1]} in the next 24 hours."
-        else:
-            return f"Be aware of {', '.join(risk_factors[:-1])}, and {risk_factors[-1]} in the next 24 hours."
-    
-    def get_emergency_advice(self, risk_level: str, critical_hours: list) -> str:
-        """
-        Get emergency advice based on risk level and critical hours
-        
-        Args:
-            risk_level: Overall risk level
-            critical_hours: List of critical hours
-            
-        Returns:
-            Emergency advice string
-        """
-        if risk_level == 'high':
-            return "🚨 DANGEROUS CONDITIONS - Do not attempt to climb. Wait for improved weather."
-        elif risk_level == 'moderate':
-            if critical_hours:
-                return "⚠️  Exercise extreme caution. Consider postponing climb if conditions worsen."
-            else:
-                return "⚠️  Monitor conditions closely and be prepared to turn back if needed."
-        else:
-            return "✅ Conditions are generally safe, but always be prepared for changing weather."
-    
-    def assess_climbing_safety(self, weather_forecast: pd.DataFrame) -> dict:
-        """
-        Complete safety assessment for Mount Rainier climbing
-        
-        This is the main function that provides a comprehensive safety
-        analysis for climbers planning to summit Mount Rainier.
-        
-        Args:
-            weather_forecast: DataFrame with weather predictions
-            
-        Returns:
-            Complete safety assessment dictionary
-            
-        Example:
-            assess_climbing_safety(forecast) returns:
-            {
-                'risk_data': DataFrame with hourly risk scores,
-                'overall_analysis': {...},
-                'immediate_alerts': {...},
-                'safety_recommendations': [...],
-                'climbing_advice': '...'
-            }
-        """
-        print("🏔️ Conducting comprehensive climbing safety assessment...")
+        # Calculate pressure trends if available
+        pressure_trends = None
+        if pressure_col in weather_data.columns:
+            pressure_trends = weather_data[pressure_col].diff(6)  # 6-hour trend
         
         # Calculate risk scores for each hour
-        risk_data = self.calculate_weather_risk_score(weather_forecast)
+        risk_scores = []
+        risk_levels = []
         
-        # Analyze the entire forecast period
-        overall_analysis = self.analyze_forecast_period(risk_data)
+        for idx, row in weather_data.iterrows():
+            # Get weather values for this hour
+            temp = row.get(temp_col, 50)  # Default to 50°F if missing
+            wind = row.get(wind_col, 0)   # Default to 0 mph if missing
+            precip = row.get(precip_col, 0)  # Default to 0 mm/hr if missing
+            
+            # Get pressure trend if available
+            pressure_trend = None
+            if pressure_trends is not None and idx in pressure_trends.index:
+                pressure_trend = pressure_trends.loc[idx]
+            
+            # Calculate risk score
+            risk_score = self.calculate_risk_score(temp, wind, precip, pressure_trend)
+            risk_level = self.classify_risk_level(risk_score)
+            
+            risk_scores.append(risk_score)
+            risk_levels.append(risk_level)
         
-        # Create immediate risk alerts
-        immediate_alerts = self.create_risk_alert(risk_data)
+        # Create risk assessment DataFrame
+        risk_data = weather_data.copy()
+        risk_data['risk_score'] = risk_scores
+        risk_data['risk_level'] = risk_levels
         
-        # Get safety recommendations
-        safety_recommendations = self.get_safety_recommendations(overall_analysis['overall_risk'])
+        # Count risk distribution
+        risk_distribution = risk_data['risk_level'].value_counts()
+        print(f"Calculated risk scores for {len(risk_data)} hours")
+        print(f"Risk distribution:")
+        for level in ['low', 'moderate', 'high', 'extreme']:
+            count = risk_distribution.get(level, 0)
+            print(f"   {level.capitalize()} risk: {count} hours")
         
-        # Create climbing advice
-        climbing_advice = self.create_climbing_advice(overall_analysis, immediate_alerts)
+        return risk_data
+    
+    def analyze_overall_safety(self, risk_data):
+        """
+        Analyze overall safety of the forecast period
+        """
+        print("Analyzing overall forecast safety...")
         
+        # Calculate overall statistics
+        avg_risk = risk_data['risk_score'].mean()
+        max_risk = risk_data['risk_score'].max()
+        min_risk = risk_data['risk_score'].min()
+        
+        # Determine overall risk level
+        if avg_risk <= 2.0:
+            overall_risk = 'low'
+        elif avg_risk <= 4.0:
+            overall_risk = 'moderate'
+        elif avg_risk <= 7.0:
+            overall_risk = 'high'
+        else:
+            overall_risk = 'extreme'
+        
+        # Find best climbing window (6-hour period with lowest average risk)
+        window_size = 6
+        best_window_start = None
+        best_window_avg_risk = float('inf')
+        
+        for i in range(len(risk_data) - window_size + 1):
+            window_risk = risk_data['risk_score'].iloc[i:i+window_size].mean()
+            if window_risk < best_window_avg_risk:
+                best_window_avg_risk = window_risk
+                best_window_start = risk_data.index[i]
+        
+        best_window_end = best_window_start + pd.Timedelta(hours=window_size)
+        best_window = f"{best_window_start.strftime('%Y-%m-%d %H:%M')} to {best_window_end.strftime('%Y-%m-%d %H:%M')}"
+        
+        # Find worst conditions (6-hour period with highest average risk)
+        worst_window_start = None
+        worst_window_avg_risk = 0
+        
+        for i in range(len(risk_data) - window_size + 1):
+            window_risk = risk_data['risk_score'].iloc[i:i+window_size].mean()
+            if window_risk > worst_window_avg_risk:
+                worst_window_avg_risk = window_risk
+                worst_window_start = risk_data.index[i]
+        
+        worst_window_end = worst_window_start + pd.Timedelta(hours=window_size)
+        worst_window = f"{worst_window_start.strftime('%Y-%m-%d %H:%M')} to {worst_window_end.strftime('%Y-%m-%d %H:%M')}"
+        
+        # Calculate risk distribution percentages
+        total_hours = len(risk_data)
+        risk_distribution = {
+            'low': (risk_data['risk_level'] == 'low').sum() / total_hours * 100,
+            'moderate': (risk_data['risk_level'] == 'moderate').sum() / total_hours * 100,
+            'high': (risk_data['risk_level'] == 'high').sum() / total_hours * 100,
+            'extreme': (risk_data['risk_level'] == 'extreme').sum() / total_hours * 100
+        }
+        
+        # Calculate daily averages
+        risk_data_copy = risk_data.copy()
+        risk_data_copy['day'] = risk_data_copy.index.date
+        daily_avg = risk_data_copy.groupby('day')['risk_score'].mean()
+        
+        day1_avg = daily_avg.iloc[0] if len(daily_avg) > 0 else 0
+        day2_avg = daily_avg.iloc[1] if len(daily_avg) > 1 else 0
+        day3_avg = daily_avg.iloc[2] if len(daily_avg) > 2 else 0
+        
+        print(f"Overall Risk Level: {overall_risk.upper()}")
+        print(f"Best Climbing Window: {best_window}")
+        print(f"Worst Conditions: {worst_window}")
+        print(f"Risk Distribution:")
+        print(f"   Low: {risk_distribution['low']:.1f}% of time")
+        print(f"   Moderate: {risk_distribution['moderate']:.1f}% of time")
+        print(f"   High: {risk_distribution['high']:.1f}% of time")
+        print(f"   Day 1 Avg Risk: {day1_avg:.2f}")
+        print(f"   Day 2 Avg Risk: {day2_avg:.2f}")
+        print(f"   Day 3 Avg Risk: {day3_avg:.2f}")
+        
+        return {
+            'overall_risk': overall_risk,
+            'overall_risk_score': avg_risk,
+            'best_climbing_window': best_window,
+            'worst_conditions': worst_window,
+            'risk_distribution': risk_distribution,
+            'daily_averages': {
+                'day1': day1_avg,
+                'day2': day2_avg,
+                'day3': day3_avg
+            }
+        }
+    
+    def create_emergency_alerts(self, risk_data):
+        """
+        Create emergency alerts for dangerous conditions
+        """
+        print("Creating immediate risk alerts...")
+        
+        alerts = []
+        
+        # Check next 24 hours for high/extreme risk
+        next_24h = risk_data.head(24)
+        high_risk_hours = next_24h[next_24h['risk_level'].isin(['high', 'extreme'])]
+        
+        if len(high_risk_hours) > 0:
+            # Find continuous periods of high risk
+            high_risk_periods = []
+            current_period_start = None
+            
+            for idx, row in high_risk_hours.iterrows():
+                if current_period_start is None:
+                    current_period_start = idx
+                elif (idx - current_period_start).total_seconds() > 3600:  # Gap > 1 hour
+                    # End current period and start new one
+                    high_risk_periods.append((current_period_start, idx - pd.Timedelta(hours=1)))
+                    current_period_start = idx
+            
+            # Add final period
+            if current_period_start is not None:
+                high_risk_periods.append((current_period_start, high_risk_hours.index[-1]))
+            
+            # Create alerts for each period
+            for start, end in high_risk_periods:
+                duration = (end - start).total_seconds() / 3600  # hours
+                max_risk = high_risk_hours.loc[start:end, 'risk_score'].max()
+                risk_level = 'HIGH' if max_risk <= 7.0 else 'EXTREME'
+                
+                alert = f"ALERT: {risk_level} risk conditions from {start.strftime('%Y-%m-%d %H:%M')} to {end.strftime('%Y-%m-%d %H:%M')} ({duration:.1f} hours)"
+                alerts.append(alert)
+        
+        # Check for rapid weather changes
+        if 'temperature_F' in risk_data.columns and 'wind_speed_mph' in risk_data.columns:
+            temp_changes = risk_data['temperature_F'].diff().abs()
+            wind_changes = risk_data['wind_speed_mph'].diff().abs()
+            
+            rapid_temp_changes = temp_changes > 10  # >10°F change
+            rapid_wind_changes = wind_changes > 15  # >15 mph change
+            
+            if rapid_temp_changes.any():
+                temp_alert = "ALERT: Rapid temperature changes detected in next 24 hours"
+                alerts.append(temp_alert)
+            
+            if rapid_wind_changes.any():
+                wind_alert = "ALERT: Rapid wind speed changes detected in next 24 hours"
+                alerts.append(wind_alert)
+        
+        if not alerts:
+            alerts.append("No immediate alerts - conditions appear stable")
+        
+        return alerts
+    
+    def assess_climbing_safety(self, weather_data):
+        """
+        Conduct comprehensive climbing safety assessment
+        """
+        print("Conducting comprehensive climbing safety assessment...")
+        
+        # Step 1: Calculate risk scores for each hour
+        risk_data = self.assess_weather_risk(weather_data)
+        
+        # Step 2: Analyze overall safety
+        overall_analysis = self.analyze_overall_safety(risk_data)
+        
+        # Step 3: Create emergency alerts
+        emergency_alerts = self.create_emergency_alerts(risk_data)
+        
+        # Step 4: Compile complete assessment
         assessment = {
             'risk_data': risk_data,
             'overall_analysis': overall_analysis,
-            'immediate_alerts': immediate_alerts,
-            'safety_recommendations': safety_recommendations,
-            'climbing_advice': climbing_advice,
-            'assessment_timestamp': datetime.now().isoformat()
+            'emergency_alerts': emergency_alerts,
+            'assessment_timestamp': pd.Timestamp.now(),
+            'forecast_hours': len(weather_data)
         }
         
-        print("✅ Safety assessment completed")
+        print("Safety assessment completed")
         return assessment
     
-    def create_climbing_advice(self, overall_analysis: dict, immediate_alerts: dict) -> str:
+    def create_sample_assessment(self, hours=72):
         """
-        Create personalized climbing advice based on the assessment
-        
-        Args:
-            overall_analysis: Overall forecast analysis
-            immediate_alerts: Immediate risk alerts
-            
-        Returns:
-            Personalized climbing advice string
+        Create a sample safety assessment for demonstration
         """
-        risk_level = overall_analysis['overall_risk']
+        print("Creating sample weather forecast for demonstration...")
         
-        if risk_level == 'high':
-            return (
-                "🚨 CLIMBING NOT RECOMMENDED\n\n"
-                "The weather forecast indicates dangerous conditions for climbing Mount Rainier. "
-                "High winds, low temperatures, and/or heavy precipitation create significant "
-                "risks of frostbite, hypothermia, and disorientation. Emergency rescue may be "
-                "difficult or impossible in these conditions. Please wait for improved weather "
-                "before attempting to climb."
-            )
+        # Generate sample weather data
+        np.random.seed(42)
+        timestamps = pd.date_range(start=pd.Timestamp.now(), periods=hours, freq='H')
         
-        elif risk_level == 'moderate':
-            return (
-                "⚠️  CLIMBING WITH CAUTION\n\n"
-                "Weather conditions are challenging but manageable for experienced climbers. "
-                "Ensure you have proper cold weather gear, emergency communication devices, "
-                "and a backup plan. Monitor weather conditions throughout your climb and be "
-                "prepared to turn back if conditions deteriorate. Consider climbing during "
-                f"the recommended window: {overall_analysis['best_climbing_window']}."
-            )
+        # Create realistic weather patterns
+        temperatures = np.random.normal(35, 15, hours)  # 35°F average, 15°F std
+        wind_speeds = np.random.exponential(8, hours)   # Exponential distribution
+        precipitation = np.random.exponential(0.1, hours)  # Mostly 0, occasional light precip
+        pressures = np.random.normal(21, 0.5, hours)    # 21 inHg average
         
-        else:  # low risk
-            return (
-                "✅ CLIMBING CONDITIONS FAVORABLE\n\n"
-                "Weather conditions are generally safe for experienced climbers. "
-                "Standard mountaineering equipment and procedures are recommended. "
-                "Monitor weather conditions throughout your climb and have a backup plan "
-                "in case conditions change. The best climbing window is: "
-                f"{overall_analysis['best_climbing_window']}."
-            )
+        # Create some dangerous periods
+        dangerous_hours = np.random.choice(hours, size=hours//10, replace=False)
+        temperatures[dangerous_hours] = np.random.uniform(-10, 10, len(dangerous_hours))
+        wind_speeds[dangerous_hours] = np.random.uniform(30, 60, len(dangerous_hours))
+        
+        # Create DataFrame
+        weather_forecast = pd.DataFrame({
+            'temperature_F': temperatures,
+            'wind_speed_mph': wind_speeds,
+            'precip_hourly': precipitation,
+            'air_pressure_hPa': pressures
+        }, index=timestamps)
+        
+        print(f"Created sample forecast with {len(weather_forecast)} hours")
+        
+        # Conduct safety assessment
+        return self.assess_climbing_safety(weather_forecast)
 
 def main():
     """
@@ -661,10 +402,10 @@ def main():
     
     # Create DataFrame
     weather_forecast = pd.DataFrame({
-        'temperature': temperatures,
-        'wind_speed': wind_speeds,
-        'pressure': np.random.normal(21, 0.5, 72),
-        'precipitation': precipitation
+        'temperature_F': temperatures,
+        'wind_speed_mph': wind_speeds,
+        'air_pressure_hPa': np.random.normal(21, 0.5, 72),
+        'precip_hourly': precipitation
     }, index=timestamps)
     
     print(f"✅ Created sample forecast with {len(weather_forecast)} hours")
@@ -679,17 +420,20 @@ def main():
     print(f"Overall Risk Level: {assessment['overall_analysis']['overall_risk'].upper()}")
     print(f"Best Climbing Window: {assessment['overall_analysis']['best_climbing_window']}")
     print(f"Worst Conditions: {assessment['overall_analysis']['worst_conditions']}")
-    print(f"Immediate Risk: {assessment['immediate_alerts']['immediate_risk'].upper()}")
-    print(f"Critical Hours: {len(assessment['immediate_alerts']['critical_hours'])}")
+    print(f"Immediate Risk: {assessment['emergency_alerts'][0].split(':')[1].strip().upper() if assessment['emergency_alerts'] else 'N/A'}")
+    print(f"Critical Hours: {len(assessment['emergency_alerts'])}")
     
     print("\nCLIMBING ADVICE:")
     print("-" * 40)
-    print(assessment['climbing_advice'])
+    # The original code had a create_climbing_advice method, but it was removed.
+    # For now, a placeholder message is printed.
+    print("Climbing advice not available in this simplified version.")
     
     print("\nSAFETY RECOMMENDATIONS:")
     print("-" * 40)
-    for rec in assessment['safety_recommendations']:
-        print(f"• {rec}")
+    # The original code had a get_safety_recommendations method, but it was removed.
+    # For now, a placeholder message is printed.
+    print("Safety recommendations not available in this simplified version.")
     
     print("\n🎉 Risk assessment demonstration completed!")
 
